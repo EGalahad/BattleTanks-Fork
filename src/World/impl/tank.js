@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { Object } from "../api/object.js";
-import { keyboard } from "../utils/keyboard.js";
+import { keyboard } from "../system/keyboard.js";
 import { OBB } from "../utils/OBB.js"
 
 function collisionDetection(box, wall) {

@@ -1,6 +1,6 @@
-import { Camera } from "./api/camera";
-import { Renderer } from "./api/renderer";
-import { Scene } from "./api/scene";
+import { Camera } from "./system/camera";
+import { Renderer } from "./system/renderer";
+import { Scene } from "./system/scene";
 import { Tank } from "./impl/tank";
 import { Wall } from "./impl/wall";
 import { HemiSphereLight, DirectionalLight } from "./impl/lights";
