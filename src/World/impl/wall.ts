@@ -1,7 +1,7 @@
-import { Object } from "../api/object";
+import { SceneObject } from "../api/SceneObject";
 import * as THREE from "three";
 
-class Wall extends Object {
+class Wall extends SceneObject {
   mesh: THREE.Mesh;
   constructor(name: string) {
     super("wall", name);
@@ -10,6 +10,7 @@ class Wall extends Object {
       new THREE.MeshLambertMaterial({ color: "grey" })
     );
     this.mesh.position.x = 100;
+    this.mesh.receiveShadow = true;
   }
 }
 

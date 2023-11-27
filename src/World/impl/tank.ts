@@ -1,120 +1,159 @@
 import * as THREE from "three";
-import { Object } from "../api/object.js";
-import { keyboard } from "../system/keyboard.js";
-import { OBB } from "../utils/OBB.js";
+import { SceneObject } from "../api/SceneObject.js";
 import { Wall } from "./wall.js";
+import { Bullet } from "./bullet.js";
+import { Scene } from "../system/scene.js";
+import { checkCollisionTankWithTank, checkCollisionTankWithWall } from "../utils/collision.js";
+import { TankConfig } from "../api/config.js";
 
-function collisionDetection(boxMesh: THREE.Mesh, wallMesh: THREE.Mesh) {
-  const geometry = boxMesh.geometry as THREE.BoxGeometry;
-  const { width, height, depth, ...others } = geometry.parameters;
-  const rotation_matrix = new THREE.Matrix3().setFromMatrix4(boxMesh.matrix);
-  const boxObb = new OBB(
-    boxMesh.position,
-    new THREE.Vector3(width / 2, height / 2, depth / 2),
-    rotation_matrix
-  );
-  const wallBox3 = new THREE.Box3().setFromObject(wallMesh);
-  if (boxObb.intersectsBox3(wallBox3)) {
-    // console.log(boxObb);
-  }
-  return boxObb.intersectsBox3(wallBox3);
-}
-
-class Tank extends Object {
+class Tank extends SceneObject {
   mesh: THREE.Mesh;
-  static meshConfig = {
-    width: 30,
-    height: 50,
-    depth: 20,
-    color: "purple",
-  };
-//   static groundTypeSpeedMap = {
-//     grass: {
-//       proceedSpeed: 20,
-//       rotationSpeed: 0.1,
-//     },
-//     water: {
-//       proceedSpeed: 10,
-//       rotationSpeed: 0.03,
-//     },
-//     swamp: {
-//       proceedSpeed: 2,
-//       rotationSpeed: 0.02,
-//     },
-//   };
+  bboxParameter: { width: number; height: number; depth: number; };
+  //   static groundTypeSpeedMap = {
+  //     grass: {
+  //       proceedSpeed: 20,
+  //       rotationSpeed: 0.1,
+  //     },
+  //     water: {
+  //       proceedSpeed: 10,
+  //       rotationSpeed: 0.03,
+  //     },
+  //     swamp: {
+  //       proceedSpeed: 2,
+  //       rotationSpeed: 0.02,
+  //     },
+  //   };
+  // movement attributes
   proceedSpeed: number;
   rotationSpeed: number;
+  // state attributes
+  health: number;
+  attack: number;
+  defense: number;
+  // bullet configuration
+  bulletLocalPos: THREE.Vector3;
+  bulletLocalDir: THREE.Vector3;
+  bulletSpeed: number;
+  // key bindings
+  proceedUpKey: string;
+  proceedDownKey: string;
+  rotateLeftKey: string;
+  rotateRightKey: string;
+  firingKey: string;
+  // state variables
+  lastFireTime: number;
+  firingKeyPressed: boolean;
   proceed: number;
   rotate: number;
-  // bullets: never[];
-  walls: Wall[];
-  // powerups: never[];
-  isMainCharacter: boolean;
-  constructor(name: string, isMainCharacter: boolean) {
-    super("tank", name);
-    // load 3d geometry
-    let { width, height, depth, color } = Tank.meshConfig;
-    this.mesh = new THREE.Mesh(
-      new THREE.BoxGeometry(width, height, depth),
-      new THREE.MeshLambertMaterial({ color: color })
-    );
-    this.mesh.position.z = depth / 2;
 
-    // movement attributes
-    this.proceedSpeed = 100;
-    this.rotationSpeed = 1;
+  constructor(name: string, config: TankConfig) {
+    super("tank", name);
+    Object.assign(this, config);
+    // TODO: load 3d geometry
+    this.mesh = new THREE.Mesh(
+      new THREE.BoxGeometry(config.width, config.height, config.depth),
+      new THREE.MeshStandardMaterial({ color: config.color })
+    );
+    this.mesh.castShadow = true;
+    this.mesh.receiveShadow = true;
+    this.mesh.position.z = config.depth / 2;
+
+    if (name == "player2") {
+      this.mesh.translateX(-40);
+    }
+
+    // define bounding box parameters
+    this.bboxParameter = {
+      width: config.width,
+      height: config.height,
+      depth: config.depth,
+    };
+
+    // state variables
     this.proceed = 0; // or -1  or +1
     this.rotate = 0;
-
-    // scene related
-    // this.bullets = []
-    this.walls = [];
-    // this.powerups = []
-    // this.groundTypeMap = null;
-
-    this.isMainCharacter = isMainCharacter;
+    this.firingKeyPressed = false;
+    this.lastFireTime = 0;
   }
 
-  tick(delta: number): void {
-    if (!this.mesh) {
-        return;
-    }
-    // check keyboard and ground type to change the speed attributes
-    // const up = keyboard["ArrowUp"] || 0;
-    // const down = keyboard["ArrowDown"] || 0;
-
-
-    this.proceed = (keyboard["ArrowUp"] || 0 - keyboard["ArrowDown"] || 0) * delta;
-    this.rotate = (keyboard["ArrowLeft"] || 0 - keyboard["ArrowRight"] || 0) * delta;
-    // console.log("calling tank tick", this.proceed, this.rotate);
-    console.log("calling tank tick", keyboard);
+  _updateSpeed(keyboard: { [key: string]: number }, delta: number) {
+    this.proceed = ((keyboard[this.proceedUpKey] || 0) - (keyboard[this.proceedDownKey] || 0)) * delta;
+    this.rotate = ((keyboard[this.rotateLeftKey] || 0) - (keyboard[this.rotateRightKey] || 0)) * delta;
+    // TODO: check ground type to change the speed attributes
     // if (this.groundTypeMap) {
     //     let groundType = this.groundTypeMap.getGroundType(this.x, this.y);
     //     this.proceedSpeed = Tank.groundTypeSpeedMap[groundType].proceedSpeed;
     //     this.rotationSpeed = Tank.groundTypeSpeedMap[groundType].rotationSpeed;
     // }
+  }
+
+  _updatePosition(walls: Wall[], tanks: Tank[]) {
+    // TODO: check collision with other tanks
     // make a tentative position
-    let tank_temp = this.mesh.clone() as THREE.Mesh;
+    let tank_temp = this.mesh.clone();
     tank_temp.translateY(this.proceed * this.proceedSpeed);
     tank_temp.rotateZ(this.rotate * this.rotationSpeed);
     tank_temp.updateMatrix();
+    const tank_object_tmp = new Tank("temp", new TankConfig());
+    tank_object_tmp.mesh = tank_temp;
 
     // then check collision with walls (and other tanks), if there is collision stay freeze
-    let collision = false;
-    this.walls.forEach((wall) => {
-      if (collisionDetection(tank_temp, wall.mesh as THREE.Mesh)) {
-        collision = true;
-      }
-    });
-    if (!collision) {
-      this.mesh.position.copy(tank_temp.position);
-      this.mesh.rotation.z = tank_temp.rotation.z;
+    if (!tanks.some((tank) => (tank.name !== this.name && checkCollisionTankWithTank(tank_object_tmp, tank))) && !walls.some((wall) => checkCollisionTankWithWall(tank_object_tmp, wall))) {
+      this.mesh.translateY(this.proceed * this.proceedSpeed);
+      this.mesh.rotateZ(this.rotate * this.rotationSpeed);
     }
+  }
 
-    // then check collision with bullets, if there is collision, create a explosion effect, decrease health
+  _getBulletInitState() {
+    // compute the initial position and direction of the bullet
+    let localPos = this.bulletLocalPos.clone();
+    let localDir = this.bulletLocalDir.clone();
+    localPos.applyMatrix4(this.mesh.matrixWorld);
+    localDir.applyEuler(this.mesh.rotation);
+    return {
+      pos: localPos,
+      vel: localDir.multiplyScalar(this.bulletSpeed),
+    }
+  }
 
-    // then check collision with powerups, if there is any, apply the enhancement
+  _createBullets(keyboard: { [key: string]: number }, bullets: Bullet[], scene: Scene) {
+    // check keyboard, if space is pressed, create a bullet and add it to the scene
+    if (keyboard[this.firingKey]) {
+      const now = Date.now();
+      if (!this.firingKeyPressed && now - this.lastFireTime > 100) {
+        console.log("creating bullet");
+        const { pos, vel } = this._getBulletInitState();
+        const bullet = new Bullet("main", pos, vel, this.attack);
+        bullets.push(bullet);
+        scene.add(bullet);
+        this.firingKeyPressed = true;
+        this.lastFireTime = now;
+      }
+    } else {
+      this.firingKeyPressed = false;
+    }
+  }
 
+  update(
+    keyboard: { [key: string]: number },
+    scene: Scene,
+    tanks: Tank[],
+    walls: Wall[],
+    bullets: Bullet[],
+    delta: number
+  ) {
+    this._updateSpeed(keyboard, delta);
+    this._updatePosition(walls, tanks);
+    this._createBullets(keyboard, bullets, scene);
+  }
+
+  static onTick(tank: Tank, delta: number) { };
+
+  tick(delta: number): void {
+    if (!this.mesh) {
+      return;
+    }
+    Tank.onTick(this, delta);
     super.tick(delta);
   }
 }

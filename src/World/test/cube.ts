@@ -1,13 +1,16 @@
 import * as THREE from "three";
-import { Object } from "../api/object";
+import { SceneObject } from "../api/SceneObject";
 
-class Cube extends Object {
+class Cube extends SceneObject {
     constructor(name: string) {
         super("cube", name);
         this.mesh = new THREE.Mesh(
             new THREE.BoxGeometry(20, 20, 20),
             new THREE.MeshStandardMaterial({ color: "grey" })
         );
+        this.mesh.position.set(0, 0, 30);
+        this.mesh.castShadow = true;
+        this.mesh.receiveShadow = true;
     }
 
     tick(delta: number) {

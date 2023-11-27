@@ -9,23 +9,23 @@ Its interaction with other componenets in the scene are listed below:
 */
 import * as THREE from "three";
 
-abstract class Object {
+abstract class SceneObject {
   type: string;
   name: string;
   mesh: THREE.Object3D;
-  onUpdate: ((delta: number) => void)[];
+  updateHooks: ((delta: number) => void)[];
 
   constructor(type: string, name: string) {
     this.type = type;
     this.name = name;
-    this.onUpdate = [];
+    this.updateHooks = [];
   }
 
   tick(delta: number) {
-    this.onUpdate.forEach((hook) => hook(delta));
+    this.updateHooks.forEach((hook) => hook(delta));
     // update hooks are called in each tick() call
     // you can use this functionality to update attributes periodically
   }
 }
 
-export { Object };
+export { SceneObject };

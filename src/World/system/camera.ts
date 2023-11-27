@@ -1,30 +1,33 @@
 import * as THREE from "three";
+import { Tank } from "../impl/tank";
 
-function trackTank(
-  camera: THREE.PerspectiveCamera,
-  tankMesh: THREE.Mesh,
-  distance: number,
-  angle: number
-) {
-  let rotation = -tankMesh.rotation.z;
-  let cameraX =
-    tankMesh.position.x - distance * Math.sin(rotation) * Math.cos(angle);
-  let cameraY =
-    tankMesh.position.y - distance * Math.cos(rotation) * Math.cos(angle);
-  let cameraZ = tankMesh.position.z + distance * Math.sin(angle);
-  camera.position.set(cameraX, cameraY, cameraZ);
-  camera.lookAt(tankMesh.position);
-  camera.up.set(0, 0, 1);
-}
+// function trackTank(
+//   camera: Camera,
+//   tank: Tank,
+// ) {
+//   const distance = camera.cameraDistance;
+//   const angle = camera.cameraAngle;
+//   let rotation = -tank.mesh.rotation.z;
+//   let cameraX =
+//     tank.mesh.position.x - distance * Math.sin(rotation) * Math.cos(angle);
+//   let cameraY =
+//     tank.mesh.position.y - distance * Math.cos(rotation) * Math.cos(angle);
+//   let cameraZ = tank.mesh.position.z + distance * Math.sin(angle);
+//   camera.camera.position.set(cameraX, cameraY, cameraZ);
+//   camera.camera.lookAt(tank.mesh.position);
+//   camera.camera.up.set(0, 0, 1);
+// }
 
 class Camera {
   camera: THREE.PerspectiveCamera;
   cameraDistance: number;
   cameraAngle: number;
-  constructor() {
+  tank_idx: number;
+
+  constructor(tank_idx: number, total_idx: number) {
     this.camera = new THREE.PerspectiveCamera(
       75,
-      window.innerWidth / window.innerHeight,
+      window.innerWidth / window.innerHeight / total_idx,
       0.1,
       1000
     );
@@ -32,22 +35,29 @@ class Camera {
     this.camera.lookAt(0, 0, 0);
     this.camera.up.set(0, 0, 1);
 
-    // this.tank = tank;
+    this.tank_idx = tank_idx;
     this.cameraDistance = 300;
     this.cameraAngle = THREE.MathUtils.degToRad(50);
   }
 
-  set aspect(aspect: number) {
-    this.camera.aspect = aspect;
+  update(tanks: Tank[]) {
+    const tank = tanks[this.tank_idx];
+    let rotation = -tank.mesh.rotation.z;
+    let cameraX =
+      tank.mesh.position.x - this.cameraDistance * Math.sin(rotation) * Math.cos(this.cameraAngle);
+    let cameraY =
+      tank.mesh.position.y - this.cameraDistance * Math.cos(rotation) * Math.cos(this.cameraAngle);
+    let cameraZ = tank.mesh.position.z + this.cameraDistance * Math.sin(this.cameraAngle);
+    this.camera.position.set(cameraX, cameraY, cameraZ);
+    this.camera.lookAt(tank.mesh.position);
+    this.camera.up.set(0, 0, 1);
   }
 
-  updateProjectionMatrix() {
-    this.camera.updateProjectionMatrix();
-  }
+  static onTick(camera: Camera, delta: number) { };
 
   tick(delta: number) {
-    // trackTank(this.camera, this.tank.object, this.cameraDistance, this.cameraAngle);
+    Camera.onTick(this, delta);
   }
 }
 
-export { Camera, trackTank };
+export { Camera };

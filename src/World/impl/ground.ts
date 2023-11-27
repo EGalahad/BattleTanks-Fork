@@ -1,8 +1,9 @@
-import { Object } from "../api/object";
+import { SceneObject } from "../api/SceneObject";
 import * as THREE from "three";
 
-class Ground extends Object {
+class Ground extends SceneObject {
   mesh: THREE.Mesh;
+  planeSize: number;
   constructor(name: string) {
     super("ground", name);
     function repeat_texture(
@@ -52,16 +53,27 @@ class Ground extends Object {
     planeMaterial.roughnessMap = roughnessTexture;
 
     // Optionally, you can set other texture-related properties
-    planeMaterial.displacementScale = 1; // Adjust this value to control the displacement scale
-    planeMaterial.normalScale.set(1, 1); // Adjust this value to control the normal map scale
+    planeMaterial.displacementScale = 10; // Adjust this value to control the displacement scale
+    planeMaterial.normalScale.set(3, 3); // Adjust this value to control the normal map scale
 
-    var planeSize = 5000;
-    var planeGeometry = new THREE.PlaneGeometry(planeSize, planeSize);
+    this.planeSize = 5000;
+    const planeGeometry = new THREE.PlaneGeometry(this.planeSize, this.planeSize);
 
     // Add your material to a mesh and add it to the scene
-    var mesh = new THREE.Mesh(planeGeometry, planeMaterial);
+    const mesh = new THREE.Mesh(planeGeometry, planeMaterial);
 
     this.mesh = mesh;
+    this.mesh.castShadow = false;
+    this.mesh.receiveShadow = true;
+  }
+
+  inBoundary(pos: THREE.Vector3): boolean {
+    return (
+      pos.x <= this.mesh.position.x + this.planeSize / 2 &&
+      pos.x >= this.mesh.position.x - this.planeSize / 2 &&
+      pos.y <= this.mesh.position.y + this.planeSize / 2 &&
+      pos.y >= this.mesh.position.y - this.planeSize / 2
+    );
   }
 }
 
