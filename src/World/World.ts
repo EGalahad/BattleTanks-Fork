@@ -16,6 +16,8 @@ import { Bullet } from "./impl/bullet";
 
 import { TankConfig } from "./api/config";
 import { listenResize } from "./utils/resize";
+import * as THREE from "three";
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader'
 
 class World {
     scene: Scene;
@@ -33,8 +35,20 @@ class World {
     cameras: Camera[];
     renderers: Renderer[];
     loop: Loop;
+    mesh: { [ key: string] : any} = {};
+    listener: THREE.AudioListener;
+    sound: any;
+    audio: { [ key: string] : any} = {};
 
     constructor(container: HTMLElement) {
+        this.init(container);
+    }
+
+    async init(container: HTMLElement)
+    {
+        this.Load_Assets();
+
+        await new Promise(resolve => setTimeout(resolve, 1000));
         this.scene = new Scene();
 
         this.ground = new Ground("main");
@@ -45,6 +59,10 @@ class World {
         this.scene.add(this.hemiLight);
         this.scene.add(this.directLight);
 
+        this.listener = new THREE.AudioListener();
+        // Create a global audio source
+        this.sound = new THREE.Audio(this.listener);
+
 
         this.tanks = [];
         this.walls = [];
@@ -52,11 +70,16 @@ class World {
         this.bullets = [];
         this.powerups = [];
 
-        const wall = new Wall("main");
-        this.walls.push(wall);
+        this.Wall_Initialize(this.walls);
+        // const wall = new Wall("main");
+        // this.walls.push(wall);
 
-        const healthPowerup = new HealthPowerup("main");
+        // TODO: add other powerups
+        const healthPowerup = new HealthPowerup("main", 
+            this.mesh["Powerup"].children[0].children[0].children[0].children[9], this.sound, this.audio["Powerup"]);
         this.powerups.push(healthPowerup);
+        // const healthPowerup = new HealthPowerup("main", this.mesh["Powerup"].children[0].children[0].children[0].children[9]);
+        // this.powerups.push(healthPowerup);
 
         const tankConfig1 = new TankConfig({
             proceedUpKey: "KeyW",
@@ -67,8 +90,8 @@ class World {
             color: "blue",
         });
         const tankConfig2 = new TankConfig();
-        const tank1 = new Tank("player1", tankConfig1);
-        const tank2 = new Tank("player2", tankConfig2);
+        const tank1 = new Tank("player1", tankConfig1, true, this.mesh["Tank"], this.mesh["Bullet"], this.sound, this.audio["Bullet_hit"]);
+        const tank2 = new Tank("player2", tankConfig2, true, this.mesh["Tank"], this.mesh["Bullet"], this.sound, this.audio["Bullet_hit"]);
         this.tanks.push(tank1);
         this.tanks.push(tank2);
 
@@ -101,6 +124,7 @@ class World {
             this.cameras.push(camera);
             this.renderers.push(renderer);
         }
+        this.cameras[0].camera.add(this.listener);
 
         listenResize(this.containers, this.cameras, this.renderers);
 
@@ -125,12 +149,7 @@ class World {
         this.loop.updatableLists.push(this.powerups);
         this.loop.updatableLists.push(this.bullets);
         this.loop.updatableLists.push(this.cameras);
-
-        // const cube = new Cube("test");
-        // this.scene.add(cube);
-
-        // const helper = new THREE.CameraHelper(this.directLight.mesh.shadow.camera );
-        // this.scene.scene.add(helper);
+        this.start();
     }
 
     render() {
@@ -143,6 +162,72 @@ class World {
 
     start() {
         this.loop.start();
+    }
+
+    Load_Assets(){
+
+        const loader = new GLTFLoader();
+        loader.load('assets/tank_model_new/scene.gltf', (gltf) => {
+            this.mesh["Tank"] = gltf.scene;
+        },
+        (xhr) => {
+            console.log("Tank: " + (xhr.loaded / xhr.total) * 100 + '% loaded')
+        },
+        (error) => {
+            console.log(error)
+        });
+
+        loader.load('assets/bullet_model/scene.gltf', (gltf) => {
+            this.mesh["Bullet"] = gltf.scene;
+        },
+        (xhr) => {
+            console.log("Bullet: ", (xhr.loaded / xhr.total) * 100 + '% loaded')
+        },
+        (error) => {
+            console.log(error)
+        });
+
+        loader.load('assets/powerup_model/scene.gltf', (gltf) => {
+            this.mesh["Powerup"] = gltf.scene;
+        },
+        (xhr) => {
+            console.log("Powerup: ", (xhr.loaded / xhr.total) * 100 + '% loaded')
+        },
+        (error) => {
+            console.log(error)
+        });
+
+        
+        const audioLoader = new THREE.AudioLoader();
+        audioLoader.load('assets/audio/powerup.mp3', (buffer) => {
+            this.audio["Powerup"] = buffer;
+        });
+        audioLoader.load('assets/audio/bullet_hit.mp3', (buffer) => {
+            this.audio["Bullet_hit"] = buffer;
+        });
+        audioLoader.load('assets/audio/explosion.mp3', (buffer) => {
+            this.audio["Explosion"] = buffer;
+        });
+
+    }
+
+
+    // TODO: generate the (random) map and the walls
+    Wall_Initialize(walls: any) {
+        // var Maze_Initialize(6);
+        // for ()
+        let wall1 = new Wall("main", new THREE.Vector3(20, 2020, 50), 
+            new THREE.Vector3(1000, 0, 0), new THREE.Vector3(0, 0, 0));
+        let wall2 = new Wall("main", new THREE.Vector3(20, 2020, 50), 
+            new THREE.Vector3(-1000, 0, 0), new THREE.Vector3(0, 0, 0));
+        let wall3 = new Wall("main", new THREE.Vector3(20, 2020, 50), 
+            new THREE.Vector3(0, 1000, 0), new THREE.Vector3(0, 0, Math.PI / 2));
+        let wall4 = new Wall("main", new THREE.Vector3(20, 2020, 50), 
+            new THREE.Vector3(0, -1000, 0), new THREE.Vector3(0, 0, Math.PI / 2));
+        walls.push(wall1);
+        walls.push(wall2);
+        walls.push(wall3);
+        walls.push(wall4);
     }
 
     stop() {
