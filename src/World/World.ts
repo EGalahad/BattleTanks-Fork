@@ -6,7 +6,7 @@ import { HemiSphereLight, DirectionalLight } from "./impl/lights";
 
 import { Tank } from "./impl/tank";
 import { Wall } from "./impl/wall";
-import { Powerup, HealthPowerup } from "./impl/powerups";
+import { Powerup, HealthPowerup, WeaponPowerup } from "./impl/powerups";
 
 import { Loop } from "./system/Loop";
 
@@ -171,17 +171,94 @@ class World {
 
 
     // TODO: generate the (random) map and the walls
-    initializeWalls(walls: Wall[]) {
-        // var Maze_Initialize(6);
+    initializeWalls(walls: any) {
+        function Maze_Initialize(size: number, margin_size: number){
+            let grid_cnt = size * size;
+            let has_wall = new Array(grid_cnt);
+            for (let i = 0; i < grid_cnt; i++) {
+                has_wall[i] = new Array(grid_cnt).fill(false);
+            }
+            for (let i = 0; i < grid_cnt; i++)
+                {
+                    if (i % size != 0)
+                        has_wall[i][i-1] = true;
+                    if (i % size != size - 1)
+                        has_wall[i][i+1] = true;
+                    if (i >= size)
+                        has_wall[i][i-size] = true;
+                    if (i < grid_cnt - size)
+                        has_wall[i][i+size] = true;
+                }
+            let visited = new Array(grid_cnt).fill(false);
+            let stack = new Array();
+            let cur = 0;
+            visited[cur] = true;
+            while (true)
+            {
+                // console.log(cur);
+                let flag = false;
+                let next = 0;
+                let next_option = new Array();
+                for (let i = 0; i < grid_cnt; i++)
+                    if (has_wall[cur][i] && !visited[i])
+                    {
+                        next_option.push(i);
+                    }
+                if (next_option.length > 0)
+                {
+                    let rand = Math.floor(Math.random() * next_option.length);
+                    next = next_option[rand];
+                    flag = true;
+                }
+                if (!flag)
+                {
+                    if (stack.length == 0)
+                        break;
+                    cur = stack.pop();
+                    continue;
+                }
+                stack.push(cur);
+                visited[next] = true;
+                has_wall[cur][next] = false;
+                has_wall[next][cur] = false;
+                cur = next;
+            }
+            let grid_size = margin_size / size;
+            for (let i = 0; i < grid_cnt; i++)
+                for (let j = i + 1; j < grid_cnt; j++)
+                    if (has_wall[i][j])
+                    {
+                        let position = new THREE.Vector3(0, 0, 0);
+                        let rotation = new THREE.Vector3(0, 0, 0);
+                        if (j == i + 1)
+                        {
+                            position.x = -margin_size / 2 + grid_size * (j % size);
+                            position.y = margin_size / 2 - grid_size * (Math.floor(j / size) + 0.5);
+                        }
+                        else if (j == i + size)
+                        {
+                            position.x = -margin_size / 2 + grid_size * (j % size + 0.5);
+                            position.y = margin_size / 2 - grid_size * (Math.floor(j / size))
+                            rotation.z = Math.PI / 2;
+                        }
+                        else console.log("Error");
+                        let wall = new Wall("main", new THREE.Vector3(20, margin_size / size + 20, 50), 
+                            position, rotation);
+                        walls.push(wall);
+                        // console.log(i, j)
+                    }
+        }
+        let margin_size = 1000;
+        Maze_Initialize(7, margin_size);
         // for ()
-        let wall1 = new Wall("main", new THREE.Vector3(20, 2020, 50), 
-            new THREE.Vector3(1000, 0, 0), new THREE.Vector3(0, 0, 0));
-        let wall2 = new Wall("main", new THREE.Vector3(20, 2020, 50), 
-            new THREE.Vector3(-1000, 0, 0), new THREE.Vector3(0, 0, 0));
-        let wall3 = new Wall("main", new THREE.Vector3(20, 2020, 50), 
-            new THREE.Vector3(0, 1000, 0), new THREE.Vector3(0, 0, Math.PI / 2));
-        let wall4 = new Wall("main", new THREE.Vector3(20, 2020, 50), 
-            new THREE.Vector3(0, -1000, 0), new THREE.Vector3(0, 0, Math.PI / 2));
+        let wall1 = new Wall("main", new THREE.Vector3(20, margin_size + 20, 50), 
+            new THREE.Vector3(margin_size / 2, 0, 0), new THREE.Vector3(0, 0, 0));
+        let wall2 = new Wall("main", new THREE.Vector3(20, margin_size + 20, 50), 
+            new THREE.Vector3(-margin_size / 2, 0, 0), new THREE.Vector3(0, 0, 0));
+        let wall3 = new Wall("main", new THREE.Vector3(20, margin_size + 20, 50), 
+            new THREE.Vector3(0, margin_size / 2, 0), new THREE.Vector3(0, 0, Math.PI / 2));
+        let wall4 = new Wall("main", new THREE.Vector3(20, margin_size + 20, 50), 
+            new THREE.Vector3(0, -margin_size / 2, 0), new THREE.Vector3(0, 0, Math.PI / 2));
         walls.push(wall1);
         walls.push(wall2);
         walls.push(wall3);
@@ -193,6 +270,9 @@ class World {
         const healthPowerup = new HealthPowerup("main", 
             this.mesh["Powerup"].children[0].children[0].children[0].children[9], this.sound, this.audio["Powerup"]);
         powerups.push(healthPowerup);
+        const weaponPowerup = new WeaponPowerup("main", 
+            this.mesh["Powerup"].children[0].children[0].children[0].children[1], this.sound, this.audio["Powerup"]);
+        powerups.push(weaponPowerup);
         // this.powerups.push(healthPowerup);
     }
 
@@ -206,8 +286,8 @@ class World {
             color: "blue",
         });
         const tankConfig2 = new TankConfig();
-        const tank1 = new Tank("player1", tankConfig1, this.mesh["Tank"], this.mesh["Bullet"], this.sound, this.audio["Bullet_hit"]);
-        const tank2 = new Tank("player2", tankConfig2, this.mesh["Tank"], this.mesh["Bullet"], this.sound, this.audio["Bullet_hit"]);
+        const tank1 = new Tank("player1", tankConfig1, this.mesh["Tank"], this.mesh["Bullet"], this.sound, this.audio);
+        const tank2 = new Tank("player2", tankConfig2, this.mesh["Tank"], this.mesh["Bullet"], this.sound, this.audio);
         tanks.push(tank1);
         tanks.push(tank2);
     }

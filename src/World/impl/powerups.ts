@@ -6,13 +6,12 @@ import { Tank } from "./tank";
 import { checkCollisionPowerupWithTank } from "../utils/collision";
 
 abstract class Powerup extends SceneObject {
-  mesh: THREE.Group;
+  mesh: THREE.Mesh;
   rotationSpeed: number = 2;
   zSpeed: number = 10;
   zDirection: number = 1;
   zBounds: number[] = [10, 20];
   changeZDirection: boolean = false;
-
   sound: THREE.Audio;
   audio: AudioBuffer;
 
@@ -96,6 +95,22 @@ class HealthPowerup extends Powerup {
     tank_object.health += 10;
   }
 }
-// TODO: add other kinds of powerups
 
-export { Powerup, HealthPowerup };
+
+class WeaponPowerup extends Powerup {
+  constructor(name: string, mesh: any, sound: THREE.Audio, audio: any){
+    super(name, "weapon");
+    this.sound = sound;
+    this.audio = audio;
+    this.mesh = new THREE.Group();
+    this.mesh.add(mesh.clone())
+    this.mesh.children[0].scale.set(20, 20, 20);
+    this.mesh.children[0].rotation.x = Math.PI / 2;
+    this.mesh.position.set(-200, 0, 15);
+  }
+  apply(tank_object: Tank): void {
+    tank_object.BulletUpgrade();
+  }
+}
+
+export { Powerup, HealthPowerup, WeaponPowerup};

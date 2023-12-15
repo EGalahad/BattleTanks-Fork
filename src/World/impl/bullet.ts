@@ -13,10 +13,10 @@ class Bullet extends SceneObject {
   accel: THREE.Vector3;
   attack: number;
   sound: THREE.Audio;
-  audio: AudioBuffer;
+  audio: any;
 
   constructor(name: string, pos: THREE.Vector3, vel: THREE.Vector3, attack: number, 
-      mesh: THREE.Group, rotation: THREE.Euler, sound: THREE.Audio, audio: AudioBuffer) {
+      mesh: THREE.Group, rotation: THREE.Euler, sound: THREE.Audio, audio: any) {
       super("bullet", name);
 
       this.sound = sound;
@@ -48,7 +48,33 @@ class Bullet extends SceneObject {
     // if hit a tank, delete from the scene
     // create an explosion, apply damage
     if (tanks.some(tank => checkCollisionBulletWithTank(this, tank))) {
-      this.sound.setBuffer(this.audio);
+      // TODO: apply damage
+      for (let tank of tanks) {
+        if (checkCollisionBulletWithTank(this, tank)) {
+          console.log("Collision")
+          console.log(tank)
+          tank.health -= this.attack; 
+          tank.GetAttacked();
+         
+      //     console.log(tank.health);
+          if (tank.health <= 0) {
+            // tank.sound.setBuffer(tank.audio);
+            tank.tick = () => {};
+            tank.mesh.visible = false;
+            // tank.mesh.parent?.remove(tank.mesh);
+            // tanks.splice(tanks.indexOf(tank), 1);
+            console.log("bullet hit something");
+            this.mesh.parent?.remove(this.mesh);
+            bullets.splice(bullets.indexOf(this), 1);
+            this.sound.setBuffer(this.audio["Explosion"]);
+            this.sound.setVolume(0.5);
+            this.sound.play();
+            // TODO: add explosion effect
+            break;
+          }
+        }
+      }
+      this.sound.setBuffer(this.audio["Bullet_hit"]);
       this.sound.setVolume(0.5);
       this.sound.play();
       this.destruct(bullets);
