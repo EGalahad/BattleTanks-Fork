@@ -25,7 +25,7 @@ class Loop {
       const renderer = this.renderers[i];
       renderer.setAnimationLoop(() => {
         this.tick();
-        renderer.render(this.scene, camera);
+        renderer.renderer.render(this.scene.scene, camera.camera);
     });
     this.clock.getDelta();
   }}

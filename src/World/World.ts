@@ -109,17 +109,16 @@ class World {
             // create container
             const container_sub = container.appendChild(document.createElement("div"));
             container_sub.style.position = "absolute";
-            container_sub.style.left = `${width * i}px`;
-            container_sub.style.top = "0px";
-            container_sub.style.width = `${width}px`;
-            container_sub.style.height = `${height}px`;
+            container_sub.style.left = `${width * i / window.innerWidth * 100}%`;
+            container_sub.style.width = `${width / window.innerWidth * 100}%`;
+            // container_sub.style.top = "0px";
+            // container_sub.style.height = `${height}px`;
 
             // create camera and renderer
             const camera = new Camera(i, this.tanks.length);
             const renderer = new Renderer();
-            renderer.renderer.setSize(width, height);
-            const canvas = renderer.renderer.domElement;
-            container_sub.appendChild(canvas);
+            renderer.renderer.setSize(window.innerWidth / this.tanks.length, window.innerHeight);
+            container_sub.appendChild(renderer.renderer.domElement);
             this.containers.push(container_sub);
             this.cameras.push(camera);
             this.renderers.push(renderer);
@@ -156,7 +155,7 @@ class World {
         for (let i = 0; i < this.cameras.length; i++) {
             const camera = this.cameras[i];
             const renderer = this.renderers[i];
-            renderer.render(this.scene, camera);
+            renderer.renderer.render(this.scene.scene, camera.camera);
         }
     }
 
