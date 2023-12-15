@@ -12,6 +12,8 @@ abstract class Powerup extends SceneObject {
   zDirection: number;
   zBounds: number[];
   changeZDirection: boolean;
+  sound: any;
+  audio: any;
 
   constructor(name: string, type: string) {
     super(`powerup-${type}`, name);
@@ -25,6 +27,9 @@ abstract class Powerup extends SceneObject {
   update(powerups: Powerup[], tanks: Tank[]) {
     for (const tank of tanks) {
       if (checkCollisionPowerupWithTank(this, tank)) {
+        this.sound.setBuffer(this.audio);
+        this.sound.setVolume(0.5);
+        this.sound.play();
         this.onCollected(tank);
         powerups.splice(powerups.indexOf(this), 1);
         return
@@ -73,16 +78,22 @@ abstract class Powerup extends SceneObject {
 }
 
 class HealthPowerup extends Powerup {
-  constructor(name: string) {
+  constructor(name: string, mesh: any, sound: THREE.Audio, audio: any) {
     super(name, "health");
-    this.mesh = new THREE.Mesh(
-      new THREE.BoxGeometry(10, 10, 10),
-      new THREE.MeshLambertMaterial({ color: "green" })
-    );
-    this.mesh.position.set(200, 0, this.zBounds[0] + 1);
-    this.mesh.castShadow = true;
+    // this.mesh = new THREE.Mesh(
+    //   new THREE.BoxGeometry(10, 10, 10),
+    //   new THREE.MeshLambertMaterial({ color: "green" })
+    // );
+    this.sound = sound;
+    this.audio = audio;
+    this.mesh = new THREE.Group();
+    this.mesh.add(mesh.clone())
+    this.mesh.children[0].scale.set(20, 20, 20);
+    this.mesh.children[0].rotation.x = Math.PI / 2;
+    this.mesh.position.set(200, 0, 15);
   }
 
+  // TODO: add other kinds of apply
   apply(tank_object: Tank): void {
     tank_object.health += 10;
   }

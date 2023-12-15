@@ -1,13 +1,15 @@
 import * as THREE from "three";
+import { group } from "three";
 import { SceneObject } from "../api/SceneObject.js";
 import { Wall } from "./wall.js";
 import { Bullet } from "./bullet.js";
 import { Scene } from "../system/scene.js";
 import { checkCollisionTankWithTank, checkCollisionTankWithWall } from "../utils/collision.js";
 import { TankConfig } from "../api/config.js";
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader'
 
 class Tank extends SceneObject {
-  mesh: THREE.Mesh;
+  mesh: any;
   bboxParameter: { width: number; height: number; depth: number; };
   //   static groundTypeSpeedMap = {
   //     grass: {
@@ -45,35 +47,50 @@ class Tank extends SceneObject {
   firingKeyPressed: boolean;
   proceed: number;
   rotate: number;
+  bullet_mesh: any;
+  sound: any;
+  audio: any;
 
-  constructor(name: string, config: TankConfig) {
+  // TODO: slightly modify the bboxParameter to make collision more realistic
+  constructor(name: string, config: TankConfig, load_model: boolean, tank_mesh: any, 
+      bullet_mesh: any, sound: any, audio: any) {
     super("tank", name);
+    this.sound = sound;
+    this.audio = audio;
+    this.bullet_mesh = bullet_mesh
     Object.assign(this, config);
-    // TODO: load 3d geometry
-    this.mesh = new THREE.Mesh(
-      new THREE.BoxGeometry(config.width, config.height, config.depth),
-      new THREE.MeshStandardMaterial({ color: config.color })
-    );
-    this.mesh.castShadow = true;
-    this.mesh.receiveShadow = true;
-    this.mesh.position.z = config.depth / 2;
-
-    if (name == "player2") {
-      this.mesh.translateX(-40);
+    // this.mesh = new THREE.Mesh(
+    //   new THREE.BoxGeometry(config.width, config.height, config.depth),
+    //   new THREE.MeshStandardMaterial({ color: config.color })
+    // );
+    if (load_model)
+    {
+      this.mesh = new THREE.Group();
+      this.mesh.add(tank_mesh.clone());
+      this.mesh.children[0].scale.set(15, 15, 15);
+      this.mesh.castShadow = true;
+      this.mesh.receiveShadow = true;
+      this.mesh.children[0].rotation.x = Math.PI / 2;
+      this.mesh.children[0].rotation.y = Math.PI;
+      this.mesh.position.z = 0;
+  
+      if (name == "player2") {
+        this.mesh.translateX(-40);
+      }
     }
-
-    // define bounding box parameters
-    this.bboxParameter = {
-      width: config.width,
-      height: config.height,
-      depth: config.depth,
-    };
-
-    // state variables
-    this.proceed = 0; // or -1  or +1
-    this.rotate = 0;
-    this.firingKeyPressed = false;
-    this.lastFireTime = 0;
+  
+      // define bounding box parameters
+      this.bboxParameter = {
+        width: config.width,
+        height: config.height,
+        depth: config.depth,
+      };
+  
+      // state variables
+      this.proceed = 0; // or -1  or +1
+      this.rotate = 0;
+      this.firingKeyPressed = false;
+      this.lastFireTime = 0;
   }
 
   _updateSpeed(keyboard: { [key: string]: number }, delta: number) {
@@ -94,7 +111,7 @@ class Tank extends SceneObject {
     tank_temp.translateY(this.proceed * this.proceedSpeed);
     tank_temp.rotateZ(this.rotate * this.rotationSpeed);
     tank_temp.updateMatrix();
-    const tank_object_tmp = new Tank("temp", new TankConfig());
+    const tank_object_tmp = new Tank("temp", new TankConfig(), false, null, null, null, null);
     tank_object_tmp.mesh = tank_temp;
 
     // then check collision with walls (and other tanks), if there is collision stay freeze
@@ -123,7 +140,8 @@ class Tank extends SceneObject {
       if (!this.firingKeyPressed && now - this.lastFireTime > 100) {
         console.log("creating bullet");
         const { pos, vel } = this._getBulletInitState();
-        const bullet = new Bullet("main", pos, vel, this.attack);
+        const bullet = new Bullet("main", pos, vel, this.attack, this.bullet_mesh, 
+          this.mesh.rotation, this.sound, this.audio);
         bullets.push(bullet);
         scene.add(bullet);
         this.firingKeyPressed = true;

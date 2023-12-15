@@ -3,13 +3,14 @@ import * as THREE from "three";
 
 class Wall extends SceneObject {
   mesh: THREE.Mesh;
-  constructor(name: string) {
+  constructor(name: string, size: any, position: any, rotation: any){
     super("wall", name);
     this.mesh = new THREE.Mesh(
-      new THREE.BoxGeometry(20, 100, 50),
+      new THREE.BoxGeometry(size.x, size.y, size.z),
       new THREE.MeshLambertMaterial({ color: "grey" })
     );
-    this.mesh.position.x = 100;
+    this.mesh.position.set(position.x, position.y, position.z);
+    this.mesh.rotation.set(rotation.x, rotation.y, rotation.z);
     this.mesh.receiveShadow = true;
   }
 }

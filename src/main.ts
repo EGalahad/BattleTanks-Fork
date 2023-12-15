@@ -12,7 +12,7 @@ function main() {
     }
     const world = new World(container);
     window.world = world;
-    world.start();
+    // world.start();
     console.log("game started");
 }
 
