@@ -26,19 +26,20 @@ class World {
     hemiLight: HemiSphereLight;
     directLight: DirectionalLight;
 
-    tanks: Tank[];
-    walls: Wall[];
-    bullets: Bullet[];
-    powerups: Powerup[];
+    walls: Wall[] = [];
+    powerups: Powerup[] = [];
+    tanks: Tank[] = [];
+    bullets: Bullet[] = [];
 
     containers: HTMLElement[];
     cameras: Camera[];
     renderers: Renderer[];
     loop: Loop;
-    mesh: { [ key: string] : any} = {};
+
+    mesh: { [ key: string] : THREE.Group} = {};
+    audio: { [ key: string] : AudioBuffer} = {};
     listener: THREE.AudioListener;
-    sound: any;
-    audio: { [ key: string] : any} = {};
+    sound: THREE.Audio;
 
     constructor(container: HTMLElement) {
         this.init(container);
@@ -46,7 +47,7 @@ class World {
 
     async init(container: HTMLElement)
     {
-        this.Load_Assets();
+        this.loadAssets();
 
         await new Promise(resolve => setTimeout(resolve, 1000));
         this.scene = new Scene();
@@ -63,62 +64,32 @@ class World {
         // Create a global audio source
         this.sound = new THREE.Audio(this.listener);
 
+        this.initializeWalls(this.walls);
+        this.initializePowerups(this.powerups);
+        this.initializeTanks(this.tanks);
 
-        this.tanks = [];
-        this.walls = [];
-        // TODO: separate bullets list for each tank
-        this.bullets = [];
-        this.powerups = [];
-
-        this.Wall_Initialize(this.walls);
-        // const wall = new Wall("main");
-        // this.walls.push(wall);
-
-        // TODO: add other powerups
-        const healthPowerup = new HealthPowerup("main", 
-            this.mesh["Powerup"].children[0].children[0].children[0].children[9], this.sound, this.audio["Powerup"]);
-        this.powerups.push(healthPowerup);
-        // const healthPowerup = new HealthPowerup("main", this.mesh["Powerup"].children[0].children[0].children[0].children[9]);
-        // this.powerups.push(healthPowerup);
-
-        const tankConfig1 = new TankConfig({
-            proceedUpKey: "KeyW",
-            proceedDownKey: "KeyS",
-            rotateLeftKey: "KeyA",
-            rotateRightKey: "KeyD",
-            firingKey: "KeyF",
-            color: "blue",
-        });
-        const tankConfig2 = new TankConfig();
-        const tank1 = new Tank("player1", tankConfig1, true, this.mesh["Tank"], this.mesh["Bullet"], this.sound, this.audio["Bullet_hit"]);
-        const tank2 = new Tank("player2", tankConfig2, true, this.mesh["Tank"], this.mesh["Bullet"], this.sound, this.audio["Bullet_hit"]);
-        this.tanks.push(tank1);
-        this.tanks.push(tank2);
-
-        this.tanks.forEach(tank => this.scene.add(tank));
         this.walls.forEach(wall => this.scene.add(wall));
         this.powerups.forEach(powerup => this.scene.add(powerup));
+        this.tanks.forEach(tank => this.scene.add(tank));
 
         this.containers = [];
         this.cameras = [];
         this.renderers = [];
         for (let i = 0; i < this.tanks.length; i++) {
-            let width = window.innerWidth / this.tanks.length;
-            let height = window.innerHeight;
-
             // create container
             const container_sub = container.appendChild(document.createElement("div"));
             container_sub.style.position = "absolute";
-            container_sub.style.left = `${width * i / window.innerWidth * 100}%`;
-            container_sub.style.width = `${width / window.innerWidth * 100}%`;
-            // container_sub.style.top = "0px";
-            // container_sub.style.height = `${height}px`;
+            container_sub.style.left = `${i / this.tanks.length * 100}%`;
+            container_sub.style.width = `${1 / this.tanks.length * 100}%`;
+            container_sub.style.top = "0%";
+            container_sub.style.height = "100%";
 
             // create camera and renderer
             const camera = new Camera(i, this.tanks.length);
             const renderer = new Renderer();
             renderer.renderer.setSize(window.innerWidth / this.tanks.length, window.innerHeight);
             container_sub.appendChild(renderer.renderer.domElement);
+
             this.containers.push(container_sub);
             this.cameras.push(camera);
             this.renderers.push(renderer);
@@ -148,22 +119,10 @@ class World {
         this.loop.updatableLists.push(this.powerups);
         this.loop.updatableLists.push(this.bullets);
         this.loop.updatableLists.push(this.cameras);
-        this.start();
-    }
-
-    render() {
-        for (let i = 0; i < this.cameras.length; i++) {
-            const camera = this.cameras[i];
-            const renderer = this.renderers[i];
-            renderer.renderer.render(this.scene.scene, camera.camera);
-        }
-    }
-
-    start() {
         this.loop.start();
     }
 
-    Load_Assets(){
+    loadAssets(){
 
         const loader = new GLTFLoader();
         loader.load('assets/tank_model_new/scene.gltf', (gltf) => {
@@ -212,7 +171,7 @@ class World {
 
 
     // TODO: generate the (random) map and the walls
-    Wall_Initialize(walls: any) {
+    initializeWalls(walls: Wall[]) {
         // var Maze_Initialize(6);
         // for ()
         let wall1 = new Wall("main", new THREE.Vector3(20, 2020, 50), 
@@ -229,8 +188,28 @@ class World {
         walls.push(wall4);
     }
 
-    stop() {
-        this.loop.stop();
+    initializePowerups(powerups: Powerup[]) {
+        // TODO: add other powerups
+        const healthPowerup = new HealthPowerup("main", 
+            this.mesh["Powerup"].children[0].children[0].children[0].children[9], this.sound, this.audio["Powerup"]);
+        powerups.push(healthPowerup);
+        // this.powerups.push(healthPowerup);
+    }
+
+    initializeTanks(tanks: Tank[]) {
+        const tankConfig1 = new TankConfig({
+            proceedUpKey: "KeyW",
+            proceedDownKey: "KeyS",
+            rotateLeftKey: "KeyA",
+            rotateRightKey: "KeyD",
+            firingKey: "KeyF",
+            color: "blue",
+        });
+        const tankConfig2 = new TankConfig();
+        const tank1 = new Tank("player1", tankConfig1, this.mesh["Tank"], this.mesh["Bullet"], this.sound, this.audio["Bullet_hit"]);
+        const tank2 = new Tank("player2", tankConfig2, this.mesh["Tank"], this.mesh["Bullet"], this.sound, this.audio["Bullet_hit"]);
+        tanks.push(tank1);
+        tanks.push(tank2);
     }
 
 }

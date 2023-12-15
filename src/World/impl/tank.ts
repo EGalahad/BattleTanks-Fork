@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { group } from "three";
+import { Group } from "three";
 import { SceneObject } from "../api/SceneObject.js";
 import { Wall } from "./wall.js";
 import { Bullet } from "./bullet.js";
@@ -9,112 +9,86 @@ import { TankConfig } from "../api/config.js";
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader'
 
 class Tank extends SceneObject {
-  mesh: any;
+  mesh: THREE.Group;
   bboxParameter: { width: number; height: number; depth: number; };
-  //   static groundTypeSpeedMap = {
-  //     grass: {
-  //       proceedSpeed: 20,
-  //       rotationSpeed: 0.1,
-  //     },
-  //     water: {
-  //       proceedSpeed: 10,
-  //       rotationSpeed: 0.03,
-  //     },
-  //     swamp: {
-  //       proceedSpeed: 2,
-  //       rotationSpeed: 0.02,
-  //     },
-  //   };
   // movement attributes
   proceedSpeed: number;
   rotationSpeed: number;
+
   // state attributes
   health: number;
   attack: number;
   defense: number;
+
   // bullet configuration
   bulletLocalPos: THREE.Vector3;
   bulletLocalDir: THREE.Vector3;
   bulletSpeed: number;
+
   // key bindings
   proceedUpKey: string;
   proceedDownKey: string;
   rotateLeftKey: string;
   rotateRightKey: string;
   firingKey: string;
+
   // state variables
-  lastFireTime: number;
-  firingKeyPressed: boolean;
-  proceed: number;
-  rotate: number;
-  bullet_mesh: any;
-  sound: any;
-  audio: any;
+  proceed: number = 0;
+  rotate: number = 0;
+  lastFireTime: number = 0;
+  firingKeyPressed: boolean = false;
+
+  // other assets
+  bullet_mesh: THREE.Group;
+  sound: THREE.Audio;
+  audio: AudioBuffer;
 
   // TODO: slightly modify the bboxParameter to make collision more realistic
-  constructor(name: string, config: TankConfig, load_model: boolean, tank_mesh: any, 
-      bullet_mesh: any, sound: any, audio: any) {
+  constructor(name: string, config: TankConfig, tank_mesh: THREE.Group | null,
+    bullet_mesh: THREE.Group | null, sound: THREE.Audio | null, audio: AudioBuffer | null) {
     super("tank", name);
-    this.sound = sound;
-    this.audio = audio;
-    this.bullet_mesh = bullet_mesh
     Object.assign(this, config);
-    // this.mesh = new THREE.Mesh(
-    //   new THREE.BoxGeometry(config.width, config.height, config.depth),
-    //   new THREE.MeshStandardMaterial({ color: config.color })
-    // );
-    if (load_model)
-    {
-      this.mesh = new THREE.Group();
+
+    this.mesh = new THREE.Group();
+    if (tank_mesh != null) {
       this.mesh.add(tank_mesh.clone());
       this.mesh.children[0].scale.set(15, 15, 15);
-      this.mesh.castShadow = true;
-      this.mesh.receiveShadow = true;
       this.mesh.children[0].rotation.x = Math.PI / 2;
       this.mesh.children[0].rotation.y = Math.PI;
+
+      this.mesh.castShadow = true;
+      this.mesh.receiveShadow = true;
       this.mesh.position.z = 0;
-  
-      if (name == "player2") {
-        this.mesh.translateX(-40);
-      }
     }
-  
-      // define bounding box parameters
-      this.bboxParameter = {
-        width: config.width,
-        height: config.height,
-        depth: config.depth,
-      };
-  
-      // state variables
-      this.proceed = 0; // or -1  or +1
-      this.rotate = 0;
-      this.firingKeyPressed = false;
-      this.lastFireTime = 0;
+
+    if (name == "player2") {
+      this.mesh.translateX(-40);
+    }
+
+    if (sound != null) {
+      this.sound = sound;
+    }
+    if (audio != null) {
+      this.audio = audio;
+    }
+
+    if (bullet_mesh != null) {
+      this.bullet_mesh = bullet_mesh.clone();
+    }
   }
 
   _updateSpeed(keyboard: { [key: string]: number }, delta: number) {
     this.proceed = ((keyboard[this.proceedUpKey] || 0) - (keyboard[this.proceedDownKey] || 0)) * delta;
     this.rotate = ((keyboard[this.rotateLeftKey] || 0) - (keyboard[this.rotateRightKey] || 0)) * delta;
-    // TODO: check ground type to change the speed attributes
-    // if (this.groundTypeMap) {
-    //     let groundType = this.groundTypeMap.getGroundType(this.x, this.y);
-    //     this.proceedSpeed = Tank.groundTypeSpeedMap[groundType].proceedSpeed;
-    //     this.rotationSpeed = Tank.groundTypeSpeedMap[groundType].rotationSpeed;
-    // }
   }
 
   _updatePosition(walls: Wall[], tanks: Tank[]) {
-    // TODO: check collision with other tanks
-    // make a tentative position
-    let tank_temp = this.mesh.clone();
-    tank_temp.translateY(this.proceed * this.proceedSpeed);
-    tank_temp.rotateZ(this.rotate * this.rotationSpeed);
-    tank_temp.updateMatrix();
-    const tank_object_tmp = new Tank("temp", new TankConfig(), false, null, null, null, null);
-    tank_object_tmp.mesh = tank_temp;
+    const tank_object_tmp = new Tank("temp", new TankConfig(), null, null, null, null);
+    tank_object_tmp.mesh.applyMatrix4(this.mesh.matrix);
+    tank_object_tmp.mesh.translateY(this.proceed * this.proceedSpeed);
+    tank_object_tmp.mesh.rotateZ(this.rotate * this.rotationSpeed);
+    tank_object_tmp.mesh.updateMatrix();
 
-    // then check collision with walls (and other tanks), if there is collision stay freeze
     if (!tanks.some((tank) => (tank.name !== this.name && checkCollisionTankWithTank(tank_object_tmp, tank))) && !walls.some((wall) => checkCollisionTankWithWall(tank_object_tmp, wall))) {
       this.mesh.translateY(this.proceed * this.proceedSpeed);
       this.mesh.rotateZ(this.rotate * this.rotationSpeed);
@@ -140,7 +114,7 @@ class Tank extends SceneObject {
       if (!this.firingKeyPressed && now - this.lastFireTime > 100) {
         console.log("creating bullet");
         const { pos, vel } = this._getBulletInitState();
-        const bullet = new Bullet("main", pos, vel, this.attack, this.bullet_mesh, 
+        const bullet = new Bullet("main", pos, vel, this.attack, this.bullet_mesh,
           this.mesh.rotation, this.sound, this.audio);
         bullets.push(bullet);
         scene.add(bullet);

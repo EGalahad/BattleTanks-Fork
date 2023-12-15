@@ -6,22 +6,18 @@ import { Tank } from "./tank";
 import { checkCollisionPowerupWithTank } from "../utils/collision";
 
 abstract class Powerup extends SceneObject {
-  mesh: THREE.Mesh;
-  rotationSpeed: number;
-  zSpeed: number;
-  zDirection: number;
-  zBounds: number[];
-  changeZDirection: boolean;
-  sound: any;
-  audio: any;
+  mesh: THREE.Group;
+  rotationSpeed: number = 2;
+  zSpeed: number = 10;
+  zDirection: number = 1;
+  zBounds: number[] = [10, 20];
+  changeZDirection: boolean = false;
+
+  sound: THREE.Audio;
+  audio: AudioBuffer;
 
   constructor(name: string, type: string) {
     super(`powerup-${type}`, name);
-    this.rotationSpeed = 2;
-    this.zSpeed = 10;
-    this.zDirection = 1;
-    this.zBounds = [10, 20];
-    this.changeZDirection = false;
   }
 
   update(powerups: Powerup[], tanks: Tank[]) {
@@ -30,8 +26,9 @@ abstract class Powerup extends SceneObject {
         this.sound.setBuffer(this.audio);
         this.sound.setVolume(0.5);
         this.sound.play();
-        this.onCollected(tank);
-        powerups.splice(powerups.indexOf(this), 1);
+
+        this.apply(tank);
+        this.destruct(powerups);
         return
       }
     }
@@ -43,6 +40,12 @@ abstract class Powerup extends SceneObject {
     if (!this.mesh) {
       return;
     }
+    this._updatePosition(delta);
+    Powerup.onTick(this, delta);
+    super.tick(delta);
+  }
+
+  _updatePosition(delta: number) {
     const newPositionZ = this.mesh.position.z + this.zDirection * this.zSpeed * delta;
 
     // Check if the new position will exceed the bounds
@@ -64,38 +67,35 @@ abstract class Powerup extends SceneObject {
     }
     this.mesh.position.z += this.zDirection * this.zSpeed * delta;
     this.mesh.rotateZ(this.rotationSpeed * delta);
+  }
 
-    Powerup.onTick(this, delta);
-    super.tick(delta);
+  destruct(powerups: Powerup[]) {
+    this.mesh.parent?.remove(this.mesh);
+    powerups.splice(powerups.indexOf(this), 1);
   }
 
   abstract apply(tank_object: Tank): void;
-
-  onCollected(tank_object: Tank): void {
-    this.mesh.parent?.remove(this.mesh);
-    this.apply(tank_object);
-  }
 }
 
 class HealthPowerup extends Powerup {
-  constructor(name: string, mesh: any, sound: THREE.Audio, audio: any) {
+  constructor(name: string, mesh: any, sound: THREE.Audio, audio: AudioBuffer) {
     super(name, "health");
-    // this.mesh = new THREE.Mesh(
-    //   new THREE.BoxGeometry(10, 10, 10),
-    //   new THREE.MeshLambertMaterial({ color: "green" })
-    // );
     this.sound = sound;
     this.audio = audio;
+
     this.mesh = new THREE.Group();
+
     this.mesh.add(mesh.clone())
     this.mesh.children[0].scale.set(20, 20, 20);
     this.mesh.children[0].rotation.x = Math.PI / 2;
+
     this.mesh.position.set(200, 0, 15);
   }
 
-  // TODO: add other kinds of apply
   apply(tank_object: Tank): void {
     tank_object.health += 10;
   }
 }
+// TODO: add other kinds of powerups
+
 export { Powerup, HealthPowerup };
