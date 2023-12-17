@@ -6,7 +6,7 @@ import { Tank } from "./tank";
 import { checkCollisionPowerupWithTank } from "../utils/collision";
 
 abstract class Powerup extends SceneObject {
-  mesh: THREE.Mesh;
+  mesh: THREE.Group;
   rotationSpeed: number = 2;
   zSpeed: number = 10;
   zDirection: number = 1;

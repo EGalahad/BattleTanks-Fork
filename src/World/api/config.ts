@@ -28,7 +28,7 @@ class TankConfig {
   readonly proceedDownKey: string = "ArrowDown";
   readonly rotateLeftKey: string = "ArrowLeft";
   readonly rotateRightKey: string = "ArrowRight";
-  readonly firingKey: string = "Space";
+  readonly firingKey: string = "Enter";
 
   constructor(options: Partial<TankConfig> = {}) {
     Object.assign(this, options);

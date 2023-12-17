@@ -20,43 +20,24 @@ import { Tank } from "../impl/tank";
 
 class Camera {
   camera: THREE.PerspectiveCamera;
-  cameraDistance: number;
-  cameraAngle: number;
-  tank_idx: number;
+  cameraDistance: number = 300;
+  cameraAngle: number = THREE.MathUtils.degToRad(50);
 
-  constructor(tank_idx: number, total_idx: number) {
+  constructor(tank: Tank, aspect: number) {
     this.camera = new THREE.PerspectiveCamera(
       75,
-      window.innerWidth / window.innerHeight / total_idx,
+      aspect,
       0.1,
       1000
     );
-    this.camera.position.set(0, 100, 500);
-    this.camera.lookAt(0, 0, 0);
-    this.camera.up.set(0, 0, 1);
-
-    this.tank_idx = tank_idx;
-    this.cameraDistance = 300;
-    this.cameraAngle = THREE.MathUtils.degToRad(50);
-  }
-
-  update(tanks: Tank[]) {
-    const tank = tanks[this.tank_idx];
-    let rotation = -tank.mesh.rotation.z;
-    let cameraX =
-      tank.mesh.position.x - this.cameraDistance * Math.sin(rotation) * Math.cos(this.cameraAngle);
-    let cameraY =
-      tank.mesh.position.y - this.cameraDistance * Math.cos(rotation) * Math.cos(this.cameraAngle);
-    let cameraZ = tank.mesh.position.z + this.cameraDistance * Math.sin(this.cameraAngle);
+    // add camera to the tank's local coordinate frame
+    tank.mesh.add(this.camera);
+    let cameraX = 0;
+    let cameraY = -this.cameraDistance * Math.cos(this.cameraAngle);
+    let cameraZ = this.cameraDistance * Math.sin(this.cameraAngle);
     this.camera.position.set(cameraX, cameraY, cameraZ);
     this.camera.lookAt(tank.mesh.position);
     this.camera.up.set(0, 0, 1);
-  }
-
-  static onTick(camera: Camera, delta: number) { };
-
-  tick(delta: number) {
-    Camera.onTick(this, delta);
   }
 }
 
