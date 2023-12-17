@@ -1,4 +1,4 @@
-import { Camera } from "./system/camera";
+import { ThirdPersonViewCamera } from "./system/camera";
 import { Renderer } from "./system/renderer";
 import { Scene } from "./system/scene";
 import { Ground } from "./impl/ground";
@@ -32,7 +32,7 @@ class World {
     bullets: Bullet[] = [];
 
     containers: HTMLElement[];
-    cameras: Camera[];
+    cameras: ThirdPersonViewCamera[];
     renderers: Renderer[];
     loop: Loop;
 
@@ -84,7 +84,7 @@ class World {
             container_sub.style.height = "100%";
 
             // create camera and renderer
-            const camera = new Camera(this.tanks[i], window.innerWidth / window.innerHeight / this.tanks.length);
+            const camera = new ThirdPersonViewCamera(this.tanks[i], window.innerWidth / window.innerHeight / this.tanks.length);
             const renderer = new Renderer();
             renderer.renderer.setSize(window.innerWidth / this.tanks.length, window.innerHeight);
             container_sub.appendChild(renderer.renderer.domElement);
@@ -93,7 +93,7 @@ class World {
             this.cameras.push(camera);
             this.renderers.push(renderer);
         }
-        this.cameras[0].camera.add(this.listener);
+        this.cameras[0]._camera.add(this.listener);
 
         listenResize(this.containers, this.cameras, this.renderers);
 

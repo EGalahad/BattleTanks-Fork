@@ -23,7 +23,7 @@ class Loop {
     for (let i = 0; i < this.cameras.length; i++) {
       const camera = this.cameras[i];
       const renderer = this.renderers[i];
-      renderer.setAnimationLoop(() => {
+      renderer.renderer.setAnimationLoop(() => {
         this.tick();
         renderer.renderer.render(this.scene.scene, camera.camera);
     });
@@ -36,7 +36,7 @@ class Loop {
   }
 
   stop() {
-    this.renderers.forEach(renderer => renderer.setAnimationLoop(null));
+    this.renderers.forEach(renderer => renderer.renderer.setAnimationLoop(null));
   }
 }
 
