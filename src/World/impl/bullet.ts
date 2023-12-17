@@ -53,8 +53,7 @@ class Bullet extends SceneObject {
         if (checkCollisionBulletWithTank(this, tank)) {
           console.log("Collision")
           console.log(tank)
-          tank.health -= this.attack; 
-          tank.GetAttacked();
+          tank.GetAttacked(this.attack);
          
       //     console.log(tank.health);
           if (tank.health <= 0) {

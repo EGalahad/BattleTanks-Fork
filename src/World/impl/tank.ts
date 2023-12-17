@@ -24,6 +24,9 @@ class Tank extends SceneObject {
   bulletLocalPos: THREE.Vector3;
   bulletLocalDir: THREE.Vector3;
   bulletSpeed: number;
+  
+  // poweup configuration
+  bulletUpgradeTime: number = 10000;
 
   // key bindings
   proceedUpKey: string;
@@ -37,29 +40,34 @@ class Tank extends SceneObject {
   rotate: number = 0;
   lastFireTime: number = 0;
   firingKeyPressed: boolean = false;
+  bulletUpgradeTimeout: number = 0;
 
   // other assets
   bullet_mesh: THREE.Group;
   sound: THREE.Audio;
   audio: any;
+
+
   originalColor: any;
-  bulletUpgrade: boolean;
+
+  healthBarFillElement: HTMLElement;
+  healthBarValueElement: HTMLElement;
+  weaponBarFillElement: HTMLElement;
+  weaponBarValueElement: HTMLElement;
 
 
-  // TODO: slightly modify the bboxParameter to make collision more realistic
   constructor(name: string, config: TankConfig, tank_mesh: THREE.Group | null,
     bullet_mesh: THREE.Group | null, sound: THREE.Audio | null, audio: any | null) {
     super("tank", name);
-    this.bulletUpgrade = false;
     Object.assign(this, config);
 
     this.mesh = new THREE.Group();
     if (tank_mesh != null) {
       this.mesh.add(tank_mesh.clone());
       this.mesh.traverse((child) => {
-        if (child.material) 
+        if (child instanceof THREE.Mesh && child.material)
           this.originalColor = child.material.color.clone();
-        });
+      });
       this.mesh.children[0].scale.set(15, 15, 15);
       this.mesh.children[0].rotation.x = Math.PI / 2;
       this.mesh.children[0].rotation.y = Math.PI;
@@ -83,6 +91,13 @@ class Tank extends SceneObject {
     if (bullet_mesh != null) {
       this.bullet_mesh = bullet_mesh.clone();
     }
+  }
+
+  post_init(container_sub: HTMLElement) {
+    this.healthBarFillElement = container_sub.getElementsByClassName("health__bar__fill")[0] as HTMLElement;
+    this.healthBarValueElement = container_sub.getElementsByClassName("health__value")[0] as HTMLElement;
+    this.weaponBarFillElement = container_sub.getElementsByClassName("weapon__bar__fill")[0] as HTMLElement;
+    this.weaponBarValueElement = container_sub.getElementsByClassName("weapon__value")[0] as HTMLElement;
   }
 
   _updateSpeed(keyboard: { [key: string]: number }, delta: number) {
@@ -123,8 +138,8 @@ class Tank extends SceneObject {
         console.log("creating bullet");
         const { pos, vel } = this._getBulletInitState();
         console.log(pos)
-        if (!this.bulletUpgrade) {
-          const bullet = new Bullet("main", pos, vel, this.attack, this.bullet_mesh, 
+        if (this.bulletUpgradeTimeout === 0) {
+          const bullet = new Bullet("main", pos, vel, this.attack, this.bullet_mesh,
             this.mesh.rotation, this.sound, this.audio);
           bullets.push(bullet);
           scene.add(bullet);
@@ -134,20 +149,20 @@ class Tank extends SceneObject {
             applyEuler(this.mesh.rotation).multiplyScalar(this.bulletSpeed);
           let vel3 = new THREE.Vector3(0.2, Math.cos(Math.PI / 6), Math.sin(Math.PI / 6)).
             applyEuler(this.mesh.rotation).multiplyScalar(this.bulletSpeed);
-          const bullet1 = new Bullet("main", pos, vel, this.attack, this.bullet_mesh, 
+          const bullet1 = new Bullet("main", pos, vel, this.attack, this.bullet_mesh,
             this.mesh.rotation, this.sound, this.audio);
-          const bullet2 = new Bullet("main", pos, vel2, this.attack, this.bullet_mesh, 
-          new THREE.Vector3(this.mesh.rotation.x, this.mesh.rotation.y, this.mesh.rotation.z + Math.PI / 6),
-           this.sound, this.audio);
-          const bullet3 = new Bullet("main", pos, vel3, this.attack, this.bullet_mesh, 
-          new THREE.Vector3(this.mesh.rotation.x, this.mesh.rotation.y, this.mesh.rotation.z - Math.PI / 6),
-          this.sound, this.audio);
+          const bullet2 = new Bullet("main", pos, vel2, this.attack, this.bullet_mesh,
+            new THREE.Euler(this.mesh.rotation.x, this.mesh.rotation.y, this.mesh.rotation.z + Math.PI / 6),
+            this.sound, this.audio);
+          const bullet3 = new Bullet("main", pos, vel3, this.attack, this.bullet_mesh,
+            new THREE.Euler(this.mesh.rotation.x, this.mesh.rotation.y, this.mesh.rotation.z - Math.PI / 6),
+            this.sound, this.audio);
           bullets.push(bullet1, bullet2, bullet3);
           scene.add(bullet1);
           scene.add(bullet2);
           scene.add(bullet3);
         }
-        
+
         this.firingKeyPressed = true;
         this.lastFireTime = now;
       }
@@ -164,38 +179,50 @@ class Tank extends SceneObject {
     bullets: Bullet[],
     delta: number
   ) {
+    this.bulletUpgradeTimeout -= delta * 1000;
+    if (this.bulletUpgradeTimeout < 0) {
+      this.bulletUpgradeTimeout = 0;
+    }
+    // update bullet list elements
+    this.weaponBarFillElement.style.width = `${this.bulletUpgradeTimeout / this.bulletUpgradeTime * 100}%`;
+    this.weaponBarValueElement.innerText = `${(this.bulletUpgradeTimeout / 1000).toFixed(1)}s`;
+    console.log(this.bulletUpgradeTimeout / 1000);
+
     this._updateSpeed(keyboard, delta);
     this._updatePosition(walls, tanks);
     this._createBullets(keyboard, bullets, scene);
   }
 
-  GetAttacked() {
+  GetAttacked(attack: number) {
+    this.health -= attack;
+    this.healthBarFillElement.style.width = `${this.health}%`;
+    this.healthBarValueElement.innerText = `${this.health}`;
+
     this.mesh.children[0].traverse((child) => {
-      if (child.material) {
+      if (child instanceof THREE.Mesh && child.material) {
         console.log(child)
-        // this.originalColor = this.originalColor || child.material.color.clone();
-        // Set the color to red
         child.material.color.set(0xff0000);
-        // console.log('Before timeout:', child.material.color);
-    
+
         // Change the color back after 1 second
         setTimeout(() => {
-          // console.log('After timeout:', child.material.color);
-          // console.log('Original color:', this.originalColor);
           child.material.color.copy(this.originalColor);
-          // console.log('After color reset:', child.material.color);
         }, 1000);
         return;
       }
     });
   }
 
-  BulletUpgrade()
-  {
-    this.bulletUpgrade = true;
-    setTimeout(() => {
-      this.bulletUpgrade = false;
-    }, 10000);
+  getHealed(heal: number) {
+    this.health += heal;
+    if (this.health > 100) {
+      this.health = 100;
+    }
+    this.healthBarFillElement.style.width = `${this.health}%`;
+    this.healthBarValueElement.innerText = `${this.health}`;
+  }
+
+  BulletUpgrade() {
+    this.bulletUpgradeTimeout = this.bulletUpgradeTime;
   }
 
   static onTick(tank: Tank, delta: number) { };

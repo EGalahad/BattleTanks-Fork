@@ -34,38 +34,138 @@ h1 {
   background-color: skyblue;
 }
 
-.player-scene {
-  /* position the scene */
+.health {
+  /* position the health bar */
   position: absolute;
+  left: 0;
+  width: 40%;
+  height: 2.5%;
+}
+
+.health__text {
+  /* position the health bar text */
+  position: absolute;
+  width: 25%;
+  height: 100%;
+
+  background-color: #86e21c;
+  border-radius: 5px;
+
+  /* center the text */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  /* style the text */
+  font-size: 1em;
+  font-weight: bold;
+  color: #444;
+}
+.health__bar {
+  position: absolute;
+  left: 25%;
+  width: 60%;
+  height: 100%;
+
+  border-radius: 5px;
+}
+
+.health__value {
+  position: absolute;
+  right: 0;
+  width: 15%;
+  height: 100%;
+
+  background-color:#86e21c;
+  border-radius: 5px;
+
+
+  /* center the text */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  /* style the text */
+  font-size: 1em;
+  font-weight: bold;
+  color: #444;
+}
+
+.health__bar__fill {
+  position: absolute;
+  left: 0;
   width: 100%;
   height: 100%;
-
-  /* make sure that the scene is drawn on top */
-  z-index: 0;
+  background-color: #db0808;
+  border-radius: 5px;
+  transition: width 0.5s ease-in-out;
 }
 
-.health-bar {
-  width: 200px;
-  /* Adjust the width as needed */
-  height: 20px;
-  /* Adjust the height as needed */
-  position: relative;
-  border: 1px solid #000;
-  overflow: hidden;
-}
-
-.health-bar-fill {
+.weapon {
+  /* position the weapon bar */
   position: absolute;
-  top: 0;
   left: 0;
-  height: 100%;
-  background-color: red;
-  /* background-image: url(path/to/your/image.jpg); */
-  background-size: cover;
+  width: 40%;
+  top: 3%;
+  height: 2.5%;
 }
 
 
-/* #player1, #player2 {
-  width: 50%;
-  float: left; 
-} */
+.weapon__text {
+  /* position the weapon bar text */
+  position: absolute;
+  width: 25%;
+  height: 100%;
+
+  background-color: #86e21c;
+  border-radius: 5px;
+
+  /* center the text */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  /* style the text */
+  font-size: 1em;
+  font-weight: bold;
+  color: #444;
+}
+
+.weapon__bar {
+  position: absolute;
+  left: 25%;
+  width: 60%;
+  height: 100%;
+  
+  border-radius: 5px;
+}
+
+.weapon__value {
+  position: absolute;
+  right: 0;
+  width: 15%;
+  height: 100%;
+
+  background-color: #86e21c;
+  border-radius: 5px;
+
+  /* center the text */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  /* style the text */
+  font-size: 1em;
+  font-weight: bold;
+  color: #444;
+}
+
+.weapon__bar__fill {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: #db0808;
+  border-radius: 5px;
+  transition: width 16.7ms ease-in-out;
+}

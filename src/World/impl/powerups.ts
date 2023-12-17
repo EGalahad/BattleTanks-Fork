@@ -92,7 +92,7 @@ class HealthPowerup extends Powerup {
   }
 
   apply(tank_object: Tank): void {
-    tank_object.health += 10;
+    tank_object.getHealed(10);
   }
 }
 

@@ -6,14 +6,13 @@ interface CustomWindow extends Window {
 declare let window: CustomWindow;
 
 function main() {
-    const container = document.getElementById("scene-container");
-    if (container == null) {
-        throw new Error("No scene container found");
-    }
+    const container = document.getElementById("scene-container") as HTMLElement;
     const world = new World(container);
-    window.world = world;
-    // world.start();
+    // call world.start() after 1 second
+    setTimeout(() => { world.start(); }, 1500);
+    // setTimeout(() => { world.start(); world.pause(); }, 1500);
     console.log("game started");
+    window.world = world;
 }
 
 main();

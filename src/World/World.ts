@@ -75,13 +75,13 @@ class World {
         this.cameras = [];
         this.renderers = [];
         for (let i = 0; i < this.tanks.length; i++) {
-            // create container
-            const container_sub = container.appendChild(document.createElement("div"));
+            const container_sub = container.getElementsByClassName("sub-container")[i] as HTMLElement;
             container_sub.style.position = "absolute";
             container_sub.style.left = `${i / this.tanks.length * 100}%`;
             container_sub.style.width = `${1 / this.tanks.length * 100}%`;
             container_sub.style.top = "0%";
             container_sub.style.height = "100%";
+            this.tanks[i].post_init(container_sub);
 
             // create camera and renderer
             const camera = new ThirdPersonViewCamera(this.tanks[i], window.innerWidth / window.innerHeight / this.tanks.length);
@@ -93,7 +93,7 @@ class World {
             this.cameras.push(camera);
             this.renderers.push(renderer);
         }
-        this.cameras[0]._camera.add(this.listener);
+        this.cameras[0].camera.add(this.listener);
 
         listenResize(this.containers, this.cameras, this.renderers);
 
@@ -108,10 +108,6 @@ class World {
         Powerup.onTick = (powerup: Powerup, delta: number) => {
             powerup.update(this.powerups, this.tanks);
         }
-
-        // Camera.onTick = (camera: Camera, delta: number) => {
-        //     camera.update(this.tanks);
-        // }
 
         this.loop = new Loop(this.scene, this.cameras, this.renderers);
         this.loop.updatableLists.push(this.tanks);
