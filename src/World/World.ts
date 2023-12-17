@@ -281,7 +281,7 @@ class World {
             proceedDownKey: "KeyS",
             rotateLeftKey: "KeyA",
             rotateRightKey: "KeyD",
-            firingKey: "KeyF",
+            firingKey: "Space",
             color: "blue",
         });
         const tankConfig2 = new TankConfig();

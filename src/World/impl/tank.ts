@@ -137,7 +137,6 @@ class Tank extends SceneObject {
       if (!this.firingKeyPressed && now - this.lastFireTime > 100) {
         console.log("creating bullet");
         const { pos, vel } = this._getBulletInitState();
-        console.log(pos)
         if (this.bulletUpgradeTimeout === 0) {
           const bullet = new Bullet("main", pos, vel, this.attack, this.bullet_mesh,
             this.mesh.rotation, this.sound, this.audio);
@@ -186,7 +185,6 @@ class Tank extends SceneObject {
     // update bullet list elements
     this.weaponBarFillElement.style.width = `${this.bulletUpgradeTimeout / this.bulletUpgradeTime * 100}%`;
     this.weaponBarValueElement.innerText = `${(this.bulletUpgradeTimeout / 1000).toFixed(1)}s`;
-    console.log(this.bulletUpgradeTimeout / 1000);
 
     this._updateSpeed(keyboard, delta);
     this._updatePosition(walls, tanks);
@@ -200,7 +198,6 @@ class Tank extends SceneObject {
 
     this.mesh.children[0].traverse((child) => {
       if (child instanceof THREE.Mesh && child.material) {
-        console.log(child)
         child.material.color.set(0xff0000);
 
         // Change the color back after 1 second
