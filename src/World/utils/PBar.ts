@@ -1,4 +1,4 @@
-class PBarElement {
+class PBar {
   class_name: string;
   id: string;
   totalTime: number;
@@ -42,4 +42,4 @@ class PBarElement {
   }
 }
 
-export { PBarElement }
+export { PBar }

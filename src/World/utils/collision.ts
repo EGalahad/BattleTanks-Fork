@@ -1,10 +1,10 @@
 import { OBB } from "./OBB";
 import * as THREE from "three";
 
-import { Tank } from "../impl/tank";
-import { Wall } from "../impl/wall";
-import { Bullet } from "../impl/bullet";
-import { Powerup } from "../impl/powerups";
+import { Tank } from "../object/impl/Tank";
+import { Wall } from "../object/impl/Wall";
+import { Bullet } from "../object/impl/Bullet";
+import { Powerup } from "../object/impl/powerups";
 
 function checkCollisionTankWithWall(tank: Tank, wall: Wall) {
   const { width, height, depth } = tank.bboxParameter;

@@ -1,12 +1,12 @@
 import * as THREE from "three";
-import { SceneObject } from "../api/SceneObject";
-import { Wall } from "./wall";
-import { Tank } from "./tank";
-import { Ground } from "./ground";
+import { MovableObject } from "../BaseObject";
+import { Wall } from "./Wall";
+import { Tank } from "./Tank";
+import { Ground } from "./Ground";
 
-import { checkCollisionBulletWithTank, checkCollisionBulletWithWall } from "../utils/collision";
+import { checkCollisionBulletWithTank, checkCollisionBulletWithWall } from "../../utils/collision";
 
-class Bullet extends SceneObject {
+class Bullet extends MovableObject {
   mesh: THREE.Group
   vel: THREE.Vector3;
   accel: THREE.Vector3;
@@ -97,7 +97,6 @@ class Bullet extends SceneObject {
     // TODO: add rotation
     // this.rotation.
     Bullet.onTick(this, delta);
-    super.tick(delta);
   }
 }
 

@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { SceneObject } from "../api/SceneObject";
+import { BaseObject } from "../object/BaseObject";
 
 class Scene {
   scene: THREE.Scene;
@@ -8,7 +8,7 @@ class Scene {
     this.scene = new THREE.Scene();
   }
 
-  add(object: SceneObject) {
+  add(object: BaseObject) {
     if (object.mesh) {
       this.scene.add(object.mesh);
     }

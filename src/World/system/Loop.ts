@@ -1,7 +1,7 @@
 import { Clock } from "three";
-import { Camera } from "./camera";
-import { Renderer } from "./renderer";
-import { Scene } from "./scene";
+import { Camera } from "./Camera";
+import { Renderer } from "./Renderer";
+import { Scene } from "./Scene";
 
 class Loop {
   scene: Scene;

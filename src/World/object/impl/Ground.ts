@@ -1,7 +1,7 @@
-import { SceneObject } from "../api/SceneObject";
+import { BaseObject } from "../BaseObject";
 import * as THREE from "three";
 
-class Ground extends SceneObject {
+class Ground extends BaseObject {
   mesh: THREE.Mesh;
   planeSize: number;
   constructor(name: string) {

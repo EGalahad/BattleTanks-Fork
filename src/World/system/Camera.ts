@@ -1,11 +1,13 @@
 import * as THREE from "three";
-import { Tank } from "../impl/tank";
+import { Tank } from "../object/impl/Tank";
 
 abstract class Camera {
   _camera: THREE.PerspectiveCamera;
 
-  abstract get camera() : THREE.PerspectiveCamera;
+  abstract get camera(): THREE.PerspectiveCamera;
 }
+
+
 class ThirdPersonViewCamera extends Camera {
   cameraDistance: number = 300;
   cameraAngle: number = THREE.MathUtils.degToRad(50);

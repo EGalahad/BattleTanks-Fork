@@ -1,7 +1,7 @@
 import * as THREE from "three";
-import { SceneObject } from "../api/SceneObject";
+import { BaseObject } from "../BaseObject";
 
-class HemiSphereLight extends SceneObject {
+class HemiSphereLight extends BaseObject {
   mesh: THREE.HemisphereLight;
   constructor(name: string) {
     super("hemi-sphere-light", name);
@@ -10,7 +10,7 @@ class HemiSphereLight extends SceneObject {
   }
 }
 
-class DirectionalLight extends SceneObject {
+class DirectionalLight extends BaseObject {
   mesh: THREE.DirectionalLight;
   constructor(name: string) {
     super("directional-light", name);

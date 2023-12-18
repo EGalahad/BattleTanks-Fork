@@ -1,11 +1,9 @@
-// Health, speed, attack powerups
-
 import * as THREE from "three";
-import { SceneObject } from "../api/SceneObject";
-import { Tank } from "./tank";
-import { checkCollisionPowerupWithTank } from "../utils/collision";
+import { MovableObject } from "../BaseObject";
+import { Tank } from "./Tank";
+import { checkCollisionPowerupWithTank } from "../../utils/collision";
 
-abstract class Powerup extends SceneObject {
+abstract class Powerup extends MovableObject {
   powerup_type: string;
   mesh: THREE.Group;
   rotationSpeed: number = 2;
@@ -44,7 +42,6 @@ abstract class Powerup extends SceneObject {
     // console.log("powerup tick")
     this._updatePosition(delta);
     Powerup.onTick(this, delta);
-    super.tick(delta);
   }
 
   _updatePosition(delta: number) {
@@ -164,5 +161,63 @@ class SpeedPowerup extends TimeoutPowerup {
   }
 }
 
+class DefensePowerup extends TimeoutPowerup {
+  constructor(name: string, mesh: any, sound: THREE.Audio, audio: any) {
+    super(name, "defense", 10000);
+    this.sound = sound;
+    this.audio = audio;
+    this.mesh = new THREE.Group();
+    this.mesh.add(mesh.clone())
+    this.mesh.children[0].scale.set(20, 20, 20);
+    this.mesh.children[0].rotation.x = Math.PI / 2;
+    this.mesh.position.set(0, -100, 15);
+  }
+  PriorHook(tank: Tank): void {
+    tank.defense = 0.5;
+  }
+  PostHook(tank: Tank): void {
+    tank.defense = 0;
+  }
+}
 
-export { Powerup, HealthPowerup, WeaponPowerup, SpeedPowerup };
+class AttackPowerup extends TimeoutPowerup {
+  constructor(name: string, mesh: any, sound: THREE.Audio, audio: any) {
+    super(name, "attack", 10000);
+    this.sound = sound;
+    this.audio = audio;
+    this.mesh = new THREE.Group();
+    this.mesh.add(mesh.clone())
+    this.mesh.children[0].scale.set(20, 20, 20);
+    this.mesh.children[0].rotation.x = Math.PI / 2;
+    this.mesh.position.set(0, 200, 15);
+  }
+  PriorHook(tank: Tank): void {
+    tank.attack *= 2;
+  }
+  PostHook(tank: Tank): void {
+    tank.attack /= 2;
+  }
+}
+
+class PenetrationPowerup extends TimeoutPowerup {
+  constructor(name: string, mesh: any, sound: THREE.Audio, audio: any) {
+    super(name, "penetration", 10000);
+    this.sound = sound;
+    this.audio = audio;
+    this.mesh = new THREE.Group();
+    this.mesh.add(mesh.clone())
+    this.mesh.children[0].scale.set(20, 20, 20);
+    this.mesh.children[0].rotation.x = Math.PI / 2;
+    this.mesh.position.set(0, 300, 15);
+  }
+  PriorHook(tank: Tank): void {
+    tank.penetrationUpgraded = true;
+    tank.penetrationPermitted = true;
+  }
+  PostHook(tank: Tank): void {
+    tank.penetrationUpgraded = false;
+  }
+}
+
+
+export { Powerup, HealthPowerup, WeaponPowerup, SpeedPowerup, DefensePowerup, AttackPowerup, PenetrationPowerup };

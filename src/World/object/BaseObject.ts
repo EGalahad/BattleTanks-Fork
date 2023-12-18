@@ -9,7 +9,7 @@ Its interaction with other componenets in the scene are listed below:
 */
 import * as THREE from "three";
 
-abstract class SceneObject {
+abstract class BaseObject {
   type: string;
   name: string;
   mesh: THREE.Object3D;
@@ -18,9 +18,14 @@ abstract class SceneObject {
     this.type = type;
     this.name = name;
   }
-
-  tick(delta: number) {
-  }
 }
 
-export { SceneObject };
+abstract class MovableObject extends BaseObject {
+  constructor(type: string, name: string) {
+    super(type, name);
+  }
+
+  abstract tick(delta: number): void;
+}
+
+export { BaseObject, MovableObject };

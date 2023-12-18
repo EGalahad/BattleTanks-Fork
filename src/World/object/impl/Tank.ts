@@ -1,14 +1,14 @@
 import * as THREE from "three";
-import { SceneObject } from "../api/SceneObject.js";
-import { Wall } from "./wall.js";
-import { Bullet } from "./bullet.js";
-import { Scene } from "../system/scene.js";
-import { checkCollisionTankWithTank, checkCollisionTankWithWall } from "../utils/collision.js";
-import { PBarElement } from "../utils/PBar.js";
+import { MovableObject } from "../BaseObject.js";
+import { Wall } from "./Wall.js";
+import { Bullet } from "./Bullet.js";
+import { Scene } from "../../system/Scene.js";
+import { checkCollisionTankWithTank, checkCollisionTankWithWall } from "../../utils/collision.js";
+import { PBar } from "../../utils/PBar.js";
 
-class Tank extends SceneObject {
+class Tank extends MovableObject {
   mesh: THREE.Group;
-  bboxParameter = { width: 30, height: 50, depth: 20, };
+  bboxParameter = { width: 30, height: 50, depth: 30, };
   // movement attributes
   proceedSpeed: number = 100;
   rotationSpeed: number = 1;
@@ -18,6 +18,8 @@ class Tank extends SceneObject {
   attack: number = 10;
   defense: number = 0;
   bulletUpgraded: boolean = false;
+  penetrationUpgraded: boolean = false;
+  penetrationPermitted: boolean = false;
 
   // bullet configuration
   bulletLocalPos: THREE.Vector3 = new THREE.Vector3(0, 40, 20);
@@ -31,7 +33,7 @@ class Tank extends SceneObject {
   rotateRightKey: string = "ArrowRight";
   firingKey: string = "Enter";
 
-  // state variables
+  // keyboard control variables
   proceed: number = 0;
   rotate: number = 0;
   lastFireTime: number = 0;
@@ -46,15 +48,12 @@ class Tank extends SceneObject {
 
   healthBarFillElement: HTMLElement;
   healthBarValueElement: HTMLElement;
-  // weaponBarFillElement: HTMLElement;
-  // weaponBarValueElement: HTMLElement;
 
   // poweup is responsible for creating powerup pbar elements and hooks
   // tank tick is responsible for checking if the powerup is expired and remove it
   powerupsContainerElement: HTMLElement;
-  powerups: { [key: string]: PBarElement } = {};
+  powerups: { [key: string]: PBar } = {};
   powerupPostHooks: { [key: string]: (tank: Tank) => void } = {};
-
 
   constructor(name: string, tank_mesh: THREE.Group | null,
     bullet_mesh: THREE.Group | null, sound: THREE.Audio | null, audio: any | null, config: Partial<Tank> = {}) {
@@ -113,9 +112,21 @@ class Tank extends SceneObject {
     tank_object_tmp.mesh.rotateZ(this.rotate * this.rotationSpeed);
     tank_object_tmp.mesh.updateMatrix();
 
-    if (!tanks.some((tank) => (tank.name !== this.name && checkCollisionTankWithTank(tank_object_tmp, tank))) && !walls.some((wall) => checkCollisionTankWithWall(tank_object_tmp, wall))) {
+    if (this.penetrationUpgraded) {
       this.mesh.translateY(this.proceed * this.proceedSpeed);
       this.mesh.rotateZ(this.rotate * this.rotationSpeed);
+      return
+    }
+
+    const not_collided = (!tanks.some((tank) => (tank.name !== this.name
+      && checkCollisionTankWithTank(tank_object_tmp, tank)))
+      && !walls.some((wall) => checkCollisionTankWithWall(tank_object_tmp, wall)));
+    
+    if (this.penetrationPermitted || not_collided) {
+      this.mesh.translateY(this.proceed * this.proceedSpeed);
+      this.mesh.rotateZ(this.rotate * this.rotationSpeed);
+
+      this.penetrationPermitted = !not_collided;
     }
   }
 
@@ -208,13 +219,12 @@ class Tank extends SceneObject {
     }
     this._updateHealthAndPowerups(delta);
     Tank.onTick(this, delta);
-    super.tick(delta);
   }
 
   addPowerup(type: string, timeout: number, priorHook: (tank: Tank) => void, postHook: (tank: Tank) => void) {
     if (timeout <= 0) return;
     if (this.powerups[type] === undefined) {
-      this.powerups[type] = new PBarElement(this.powerupsContainerElement, "powerup", type, timeout);
+      this.powerups[type] = new PBar(this.powerupsContainerElement, "powerup", type, timeout);
       priorHook(this);
       this.powerupPostHooks[type] = postHook;
     } else {

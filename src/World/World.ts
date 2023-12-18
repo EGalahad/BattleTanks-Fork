@@ -1,21 +1,20 @@
 import * as THREE from "three";
-import { ThirdPersonViewCamera } from "./system/camera";
-import { Renderer } from "./system/renderer";
-import { Scene } from "./system/scene";
-import { Ground } from "./impl/ground";
-import { HemiSphereLight, DirectionalLight } from "./impl/lights";
+import { Scene } from "./system/Scene";
+import { ThirdPersonViewCamera } from "./system/Camera";
+import { Renderer } from "./system/Renderer";
 
-import { Tank } from "./impl/tank";
-import { Wall } from "./impl/wall";
-import { Powerup, HealthPowerup, WeaponPowerup, SpeedPowerup } from "./impl/powerups";
+import { Ground } from "./object/impl/Ground";
+import { HemiSphereLight, DirectionalLight } from "./object/impl/lights";
+
+import { Wall } from "./object/impl/Wall";
+import { Powerup, HealthPowerup, WeaponPowerup, SpeedPowerup, AttackPowerup, DefensePowerup, PenetrationPowerup } from "./object/impl/powerups";
+import { Tank } from "./object/impl/Tank";
+import { Bullet } from "./object/impl/Bullet";
 
 import { Loop } from "./system/Loop";
 
-import { Bullet } from "./impl/bullet";
-
-import { listenResize } from "./utils/resize";
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader'
-import { displayElement, fadeBackGround, fadeElement } from "./utils/ui";
+import { displayElement, fadeElement, fadeBackGround } from "./utils/ui";
 
 class World {
     status: string;
@@ -102,8 +101,6 @@ class World {
         }
         this.cameras[0].camera.add(this.listener);
 
-        listenResize(this.containers, this.cameras, this.renderers);
-
         Tank.onTick = (tank: Tank, delta: number) => {
             tank.update(this.keyboard, this.scene, this.tanks, this.walls, this.bullets, delta);
         }
@@ -122,9 +119,12 @@ class World {
 
         this.start();
 
-        fadeBackGround(this.menu, 1, 0.7, false, 1000);
+        fadeBackGround(this.menu, 1, 0.7, false, 1500);
         this.status = "paused";
         this.registerEventHandlers();
+
+        // force resize
+        window.dispatchEvent(new Event("resize"));
     }
 
     start() {
@@ -275,17 +275,25 @@ class World {
     }
 
     initializePowerups(powerups: Powerup[]) {
-        // TODO: add other powerups
         const healthPowerup = new HealthPowerup("main",
             this.mesh["Powerup"].children[0].children[0].children[0].children[9], this.sound, this.audio["Powerup"]);
         const weaponPowerup = new WeaponPowerup("main",
             this.mesh["Powerup"].children[0].children[0].children[0].children[1], this.sound, this.audio["Powerup"]);
         const speedPowerup = new SpeedPowerup("main",
-            this.mesh["Powerup"].children[0].children[0].children[0].children[5], this.sound, this.audio["Powerup"])
+            this.mesh["Powerup"].children[0].children[0].children[0].children[13], this.sound, this.audio["Powerup"])
+        const attackPowerup = new AttackPowerup("main",
+            this.mesh["Powerup"].children[0].children[0].children[0].children[5], this.sound, this.audio["Powerup"]);
+        const defensePowerup = new DefensePowerup("main",
+            this.mesh["Powerup"].children[0].children[0].children[0].children[3], this.sound, this.audio["Powerup"]);
+        const penetrationPowerup = new PenetrationPowerup("main",
+            this.mesh["Powerup"].children[0].children[0].children[0].children[7], this.sound, this.audio["Powerup"]);
+
         powerups.push(healthPowerup);
         powerups.push(weaponPowerup);
         powerups.push(speedPowerup);
-        // this.powerups.push(healthPowerup);
+        powerups.push(attackPowerup);
+        powerups.push(defensePowerup);
+        powerups.push(penetrationPowerup);
     }
 
     initializeTanks(tanks: Tank[]) {
@@ -323,6 +331,16 @@ class World {
         });
         window.addEventListener("keyup", (event) => {
             this.keyboard[event.code] = 0;
+        });
+        window.addEventListener("resize", () => {
+            this.cameras.forEach(camera => {
+                camera.camera.aspect = window.innerWidth / window.innerHeight / this.tanks.length;
+                camera.camera.updateProjectionMatrix();
+            });
+            this.renderers.forEach(renderer => {
+                renderer.renderer.setSize(window.innerWidth / this.tanks.length, window.innerHeight);
+                renderer.renderer.setPixelRatio(window.devicePixelRatio);
+            });
         });
     }
 }

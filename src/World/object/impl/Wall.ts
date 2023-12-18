@@ -1,8 +1,9 @@
-import { SceneObject } from "../api/SceneObject";
+import { BaseObject } from "../BaseObject";
 import * as THREE from "three";
 
-class Wall extends SceneObject {
+class Wall extends BaseObject {
   mesh: THREE.Mesh;
+
   constructor(name: string, size: any, position: any, rotation: any){
     super("wall", name);
     this.mesh = new THREE.Mesh(
