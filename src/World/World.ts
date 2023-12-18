@@ -1,3 +1,4 @@
+import * as THREE from "three";
 import { ThirdPersonViewCamera } from "./system/camera";
 import { Renderer } from "./system/renderer";
 import { Scene } from "./system/scene";
@@ -6,22 +7,20 @@ import { HemiSphereLight, DirectionalLight } from "./impl/lights";
 
 import { Tank } from "./impl/tank";
 import { Wall } from "./impl/wall";
-import { Powerup, HealthPowerup, WeaponPowerup } from "./impl/powerups";
+import { Powerup, HealthPowerup, WeaponPowerup, SpeedPowerup } from "./impl/powerups";
 
 import { Loop } from "./system/Loop";
 
-import { Cube } from "./test/cube";
-import { keyboard } from "./system/keyboard";
 import { Bullet } from "./impl/bullet";
 
-import { TankConfig } from "./api/config";
 import { listenResize } from "./utils/resize";
-import * as THREE from "three";
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader'
+import { displayElement, fadeBackGround, fadeElement } from "./utils/ui";
 
 class World {
-    scene: Scene;
+    status: string;
 
+    scene: Scene;
     ground: Ground;
     hemiLight: HemiSphereLight;
     directLight: DirectionalLight;
@@ -41,11 +40,24 @@ class World {
     listener: THREE.AudioListener;
     sound: THREE.Audio;
 
-    constructor(container: HTMLElement) {
-        this.init(container);
+    // HTML elements
+    sceneContainer: HTMLElement;
+    menu: HTMLElement;
+    replay: HTMLElement;
+    instructions: HTMLElement;
+
+    keyboard: { [key: string]: number } = {};
+
+    constructor() {
+        this.init();
     }
 
-    async init(container: HTMLElement) {
+    async init() {
+        this.sceneContainer = document.getElementById("scene-container") as HTMLElement;
+        this.menu = document.getElementById("menu") as HTMLElement;
+        this.replay = document.getElementById("replayMessage") as HTMLElement;
+        this.instructions = document.getElementById("instructions") as HTMLElement;
+
         this.loadAssets();
 
         await new Promise(resolve => setTimeout(resolve, 1000));
@@ -75,12 +87,7 @@ class World {
         this.cameras = [];
         this.renderers = [];
         for (let i = 0; i < this.tanks.length; i++) {
-            const container_sub = container.getElementsByClassName("sub-container")[i] as HTMLElement;
-            container_sub.style.position = "absolute";
-            container_sub.style.left = `${i / this.tanks.length * 100}%`;
-            container_sub.style.width = `${1 / this.tanks.length * 100}%`;
-            container_sub.style.top = "0%";
-            container_sub.style.height = "100%";
+            const container_sub = this.sceneContainer.getElementsByClassName("sub-container")[i] as HTMLElement;
             this.tanks[i].post_init(container_sub);
 
             // create camera and renderer
@@ -98,7 +105,7 @@ class World {
         listenResize(this.containers, this.cameras, this.renderers);
 
         Tank.onTick = (tank: Tank, delta: number) => {
-            tank.update(keyboard, this.scene, this.tanks, this.walls, this.bullets, delta);
+            tank.update(this.keyboard, this.scene, this.tanks, this.walls, this.bullets, delta);
         }
 
         Bullet.onTick = (bullet: Bullet, delta: number) => {
@@ -110,9 +117,14 @@ class World {
         }
 
         this.loop = new Loop(this.scene, this.cameras, this.renderers);
-        this.loop.updatableLists.push(this.tanks);
         this.loop.updatableLists.push(this.powerups);
         this.loop.updatableLists.push(this.bullets);
+
+        this.start();
+
+        fadeBackGround(this.menu, 1, 0.7, false, 1000);
+        this.status = "paused";
+        this.registerEventHandlers();
     }
 
     start() {
@@ -177,8 +189,6 @@ class World {
 
     }
 
-
-    // TODO: generate the (random) map and the walls
     initializeWalls(walls: any) {
         function Maze_Initialize(size: number, margin_size: number) {
             let grid_cnt = size * size;
@@ -268,29 +278,53 @@ class World {
         // TODO: add other powerups
         const healthPowerup = new HealthPowerup("main",
             this.mesh["Powerup"].children[0].children[0].children[0].children[9], this.sound, this.audio["Powerup"]);
-        powerups.push(healthPowerup);
         const weaponPowerup = new WeaponPowerup("main",
             this.mesh["Powerup"].children[0].children[0].children[0].children[1], this.sound, this.audio["Powerup"]);
+        const speedPowerup = new SpeedPowerup("main",
+            this.mesh["Powerup"].children[0].children[0].children[0].children[5], this.sound, this.audio["Powerup"])
+        powerups.push(healthPowerup);
         powerups.push(weaponPowerup);
+        powerups.push(speedPowerup);
         // this.powerups.push(healthPowerup);
     }
 
     initializeTanks(tanks: Tank[]) {
-        const tankConfig1 = new TankConfig({
+        const tank1 = new Tank("player1", this.mesh["Tank"], this.mesh["Bullet"], this.sound, this.audio, {
             proceedUpKey: "KeyW",
             proceedDownKey: "KeyS",
             rotateLeftKey: "KeyA",
             rotateRightKey: "KeyD",
             firingKey: "Space",
-            color: "blue",
         });
-        const tankConfig2 = new TankConfig();
-        const tank1 = new Tank("player1", tankConfig1, this.mesh["Tank"], this.mesh["Bullet"], this.sound, this.audio);
-        const tank2 = new Tank("player2", tankConfig2, this.mesh["Tank"], this.mesh["Bullet"], this.sound, this.audio);
+        const tank2 = new Tank("player2", this.mesh["Tank"], this.mesh["Bullet"], this.sound, this.audio);
         tanks.push(tank1);
         tanks.push(tank2);
     }
 
+    registerEventHandlers() {
+        window.addEventListener("mousedown", () => {
+            if (this.status == "paused") {
+                fadeElement(this.menu, 1, 0, true, 500);
+                fadeElement(this.replay, 1, 0, true, 500);
+                fadeElement(this.instructions, 1, 0, true, 500);
+                this.resume();
+                this.status = "playing";
+            }
+            else if (this.status == "playing") {
+                displayElement(this.menu, 0, 1, true, 500);
+                displayElement(this.replay, 0, 1, true, 500);
+                displayElement(this.instructions, 0, 1, true, 500);
+                this.pause();
+                this.status = "paused";
+            }
+        })
+        window.addEventListener("keydown", (event) => {
+            this.keyboard[event.code] = 1;
+        });
+        window.addEventListener("keyup", (event) => {
+            this.keyboard[event.code] = 0;
+        });
+    }
 }
 
 export { World };

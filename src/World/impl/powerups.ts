@@ -6,6 +6,7 @@ import { Tank } from "./tank";
 import { checkCollisionPowerupWithTank } from "../utils/collision";
 
 abstract class Powerup extends SceneObject {
+  powerup_type: string;
   mesh: THREE.Group;
   rotationSpeed: number = 2;
   zSpeed: number = 10;
@@ -17,6 +18,7 @@ abstract class Powerup extends SceneObject {
 
   constructor(name: string, type: string) {
     super(`powerup-${type}`, name);
+    this.powerup_type = type;
   }
 
   update(powerups: Powerup[], tanks: Tank[]) {
@@ -39,6 +41,7 @@ abstract class Powerup extends SceneObject {
     if (!this.mesh) {
       return;
     }
+    // console.log("powerup tick")
     this._updatePosition(delta);
     Powerup.onTick(this, delta);
     super.tick(delta);
@@ -88,29 +91,78 @@ class HealthPowerup extends Powerup {
     this.mesh.children[0].scale.set(20, 20, 20);
     this.mesh.children[0].rotation.x = Math.PI / 2;
 
-    this.mesh.position.set(200, 0, 15);
+    this.mesh.position.set(100, 0, 15);
   }
 
   apply(tank_object: Tank): void {
-    tank_object.getHealed(10);
+    tank_object.health += 10;
+    if (tank_object.health > 100) {
+      tank_object.health = 100;
+    }
   }
 }
 
+abstract class TimeoutPowerup extends Powerup {
+  timeout: number;
 
-class WeaponPowerup extends Powerup {
-  constructor(name: string, mesh: any, sound: THREE.Audio, audio: any){
-    super(name, "weapon");
+  constructor(name: string, type: string, timeout: number) {
+    super(name, type);
+    this.timeout = timeout;
+  }
+
+  abstract PriorHook(tank: Tank): void;
+  abstract PostHook(tank: Tank): void;
+  apply(tank_object: Tank): void {
+    tank_object.addPowerup(this.powerup_type, this.timeout, this.PriorHook, this.PostHook);
+  }
+
+}
+
+
+class WeaponPowerup extends TimeoutPowerup {
+  constructor(name: string, mesh: any, sound: THREE.Audio, audio: any) {
+    super(name, "weapon", 10000);
     this.sound = sound;
     this.audio = audio;
     this.mesh = new THREE.Group();
     this.mesh.add(mesh.clone())
     this.mesh.children[0].scale.set(20, 20, 20);
     this.mesh.children[0].rotation.x = Math.PI / 2;
-    this.mesh.position.set(-200, 0, 15);
+    this.mesh.position.set(-100, 0, 15);
   }
-  apply(tank_object: Tank): void {
-    tank_object.BulletUpgrade();
+
+  PriorHook(tank: Tank): void {
+    tank.bulletUpgraded = true;
+  }
+
+  PostHook(tank: Tank): void {
+    tank.bulletUpgraded = false;
   }
 }
 
-export { Powerup, HealthPowerup, WeaponPowerup};
+class SpeedPowerup extends TimeoutPowerup {
+  // proceedBoost: number = 2;
+  // rotateBoost: number = 1.5;
+
+  constructor(name: string, mesh: any, sound: THREE.Audio, audio: any) {
+    super(name, "speed", 10000);
+    this.sound = sound;
+    this.audio = audio;
+    this.mesh = new THREE.Group();
+    this.mesh.add(mesh.clone())
+    this.mesh.children[0].scale.set(20, 20, 20);
+    this.mesh.children[0].rotation.x = Math.PI / 2;
+    this.mesh.position.set(0, 100, 15);
+  }
+  PriorHook(tank: Tank): void {
+    tank.proceedSpeed = tank.proceedSpeed * 2;
+    tank.rotationSpeed = tank.rotationSpeed * 1.5;
+  }
+  PostHook(tank: Tank): void {
+    tank.proceedSpeed = tank.proceedSpeed / 2;
+    tank.rotationSpeed = tank.rotationSpeed / 1.5;
+  }
+}
+
+
+export { Powerup, HealthPowerup, WeaponPowerup, SpeedPowerup };

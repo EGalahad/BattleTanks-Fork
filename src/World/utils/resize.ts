@@ -6,12 +6,6 @@ function listenResize(containers: HTMLElement[], cameras: Camera[], renderer: Re
   window.addEventListener("resize", () => {
     let width = window.innerWidth / n;
     let height = window.innerHeight;
-    containers.forEach((container, i) => {
-      container.style.left = `${width * i}px`;
-      container.style.top = "0px";
-      container.style.width = `${width}px`;
-      container.style.height = `${height}px`;
-    }); 
 
     cameras.forEach(camera => {
       camera.camera.aspect = width / height;

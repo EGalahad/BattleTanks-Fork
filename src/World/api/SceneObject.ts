@@ -13,18 +13,13 @@ abstract class SceneObject {
   type: string;
   name: string;
   mesh: THREE.Object3D;
-  updateHooks: ((delta: number) => void)[];
 
   constructor(type: string, name: string) {
     this.type = type;
     this.name = name;
-    this.updateHooks = [];
   }
 
   tick(delta: number) {
-    this.updateHooks.forEach((hook) => hook(delta));
-    // update hooks are called in each tick() call
-    // you can use this functionality to update attributes periodically
   }
 }
 

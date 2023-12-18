@@ -1,63 +1,63 @@
 import * as THREE from "three";
-import { Group } from "three";
 import { SceneObject } from "../api/SceneObject.js";
 import { Wall } from "./wall.js";
 import { Bullet } from "./bullet.js";
 import { Scene } from "../system/scene.js";
 import { checkCollisionTankWithTank, checkCollisionTankWithWall } from "../utils/collision.js";
-import { TankConfig } from "../api/config.js";
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader'
+import { PBarElement } from "../utils/PBar.js";
 
 class Tank extends SceneObject {
   mesh: THREE.Group;
-  bboxParameter: { width: number; height: number; depth: number; };
+  bboxParameter = { width: 30, height: 50, depth: 20, };
   // movement attributes
-  proceedSpeed: number;
-  rotationSpeed: number;
+  proceedSpeed: number = 100;
+  rotationSpeed: number = 1;
 
   // state attributes
-  health: number;
-  attack: number;
-  defense: number;
+  health: number = 100;
+  attack: number = 10;
+  defense: number = 0;
+  bulletUpgraded: boolean = false;
 
   // bullet configuration
-  bulletLocalPos: THREE.Vector3;
-  bulletLocalDir: THREE.Vector3;
-  bulletSpeed: number;
-  
-  // poweup configuration
-  bulletUpgradeTime: number = 10000;
+  bulletLocalPos: THREE.Vector3 = new THREE.Vector3(0, 40, 20);
+  bulletLocalDir: THREE.Vector3 = new THREE.Vector3(0, Math.cos(Math.PI / 6), Math.sin(Math.PI / 6));
+  bulletSpeed: number = 150;
 
   // key bindings
-  proceedUpKey: string;
-  proceedDownKey: string;
-  rotateLeftKey: string;
-  rotateRightKey: string;
-  firingKey: string;
+  proceedUpKey: string = "ArrowUp";
+  proceedDownKey: string = "ArrowDown";
+  rotateLeftKey: string = "ArrowLeft";
+  rotateRightKey: string = "ArrowRight";
+  firingKey: string = "Enter";
 
   // state variables
   proceed: number = 0;
   rotate: number = 0;
   lastFireTime: number = 0;
   firingKeyPressed: boolean = false;
-  bulletUpgradeTimeout: number = 0;
 
   // other assets
   bullet_mesh: THREE.Group;
   sound: THREE.Audio;
   audio: any;
 
-
   originalColor: any;
 
   healthBarFillElement: HTMLElement;
   healthBarValueElement: HTMLElement;
-  weaponBarFillElement: HTMLElement;
-  weaponBarValueElement: HTMLElement;
+  // weaponBarFillElement: HTMLElement;
+  // weaponBarValueElement: HTMLElement;
+
+  // poweup is responsible for creating powerup pbar elements and hooks
+  // tank tick is responsible for checking if the powerup is expired and remove it
+  powerupsContainerElement: HTMLElement;
+  powerups: { [key: string]: PBarElement } = {};
+  powerupPostHooks: { [key: string]: (tank: Tank) => void } = {};
 
 
-  constructor(name: string, config: TankConfig, tank_mesh: THREE.Group | null,
-    bullet_mesh: THREE.Group | null, sound: THREE.Audio | null, audio: any | null) {
+  constructor(name: string, tank_mesh: THREE.Group | null,
+    bullet_mesh: THREE.Group | null, sound: THREE.Audio | null, audio: any | null, config: Partial<Tank> = {}) {
     super("tank", name);
     Object.assign(this, config);
 
@@ -96,8 +96,9 @@ class Tank extends SceneObject {
   post_init(container_sub: HTMLElement) {
     this.healthBarFillElement = container_sub.getElementsByClassName("health__bar__fill")[0] as HTMLElement;
     this.healthBarValueElement = container_sub.getElementsByClassName("health__value")[0] as HTMLElement;
-    this.weaponBarFillElement = container_sub.getElementsByClassName("weapon__bar__fill")[0] as HTMLElement;
-    this.weaponBarValueElement = container_sub.getElementsByClassName("weapon__value")[0] as HTMLElement;
+    // this.weaponBarFillElement = container_sub.getElementsByClassName("weapon__bar__fill")[0] as HTMLElement;
+    // this.weaponBarValueElement = container_sub.getElementsByClassName("weapon__value")[0] as HTMLElement;
+    this.powerupsContainerElement = container_sub.getElementsByClassName("powerups")[0] as HTMLElement;
   }
 
   _updateSpeed(keyboard: { [key: string]: number }, delta: number) {
@@ -106,7 +107,7 @@ class Tank extends SceneObject {
   }
 
   _updatePosition(walls: Wall[], tanks: Tank[]) {
-    const tank_object_tmp = new Tank("temp", new TankConfig(), null, null, null, null);
+    const tank_object_tmp = new Tank("temp", null, null, null, null);
     tank_object_tmp.mesh.applyMatrix4(this.mesh.matrix);
     tank_object_tmp.mesh.translateY(this.proceed * this.proceedSpeed);
     tank_object_tmp.mesh.rotateZ(this.rotate * this.rotationSpeed);
@@ -137,7 +138,7 @@ class Tank extends SceneObject {
       if (!this.firingKeyPressed && now - this.lastFireTime > 100) {
         console.log("creating bullet");
         const { pos, vel } = this._getBulletInitState();
-        if (this.bulletUpgradeTimeout === 0) {
+        if (!this.bulletUpgraded) {
           const bullet = new Bullet("main", pos, vel, this.attack, this.bullet_mesh,
             this.mesh.rotation, this.sound, this.audio);
           bullets.push(bullet);
@@ -178,23 +179,13 @@ class Tank extends SceneObject {
     bullets: Bullet[],
     delta: number
   ) {
-    this.bulletUpgradeTimeout -= delta * 1000;
-    if (this.bulletUpgradeTimeout < 0) {
-      this.bulletUpgradeTimeout = 0;
-    }
-    // update bullet list elements
-    this.weaponBarFillElement.style.width = `${this.bulletUpgradeTimeout / this.bulletUpgradeTime * 100}%`;
-    this.weaponBarValueElement.innerText = `${(this.bulletUpgradeTimeout / 1000).toFixed(1)}s`;
-
     this._updateSpeed(keyboard, delta);
     this._updatePosition(walls, tanks);
     this._createBullets(keyboard, bullets, scene);
   }
 
   GetAttacked(attack: number) {
-    this.health -= attack;
-    this.healthBarFillElement.style.width = `${this.health}%`;
-    this.healthBarValueElement.innerText = `${this.health}`;
+    this.health -= attack * (1 - this.defense);
 
     this.mesh.children[0].traverse((child) => {
       if (child instanceof THREE.Mesh && child.material) {
@@ -209,27 +200,41 @@ class Tank extends SceneObject {
     });
   }
 
-  getHealed(heal: number) {
-    this.health += heal;
-    if (this.health > 100) {
-      this.health = 100;
-    }
-    this.healthBarFillElement.style.width = `${this.health}%`;
-    this.healthBarValueElement.innerText = `${this.health}`;
-  }
-
-  BulletUpgrade() {
-    this.bulletUpgradeTimeout = this.bulletUpgradeTime;
-  }
-
   static onTick(tank: Tank, delta: number) { };
 
   tick(delta: number): void {
     if (!this.mesh) {
       return;
     }
+    this._updateHealthAndPowerups(delta);
     Tank.onTick(this, delta);
     super.tick(delta);
+  }
+
+  addPowerup(type: string, timeout: number, priorHook: (tank: Tank) => void, postHook: (tank: Tank) => void) {
+    if (timeout <= 0) return;
+    if (this.powerups[type] === undefined) {
+      this.powerups[type] = new PBarElement(this.powerupsContainerElement, "powerup", type, timeout);
+      priorHook(this);
+      this.powerupPostHooks[type] = postHook;
+    } else {
+      this.powerups[type].update(timeout);
+    }
+  }
+
+  _updateHealthAndPowerups(delta: number) {
+    this.healthBarFillElement.style.width = `${this.health}%`;
+    this.healthBarValueElement.innerText = `${(this.health).toFixed(0)}`;
+
+    for (const key in this.powerups) {
+      let timeout = this.powerups[key].timeout - delta * 1000;
+      this.powerups[key].update(timeout);
+      if (timeout < 0) {
+        delete this.powerups[key];
+        this.powerupPostHooks[key](this);
+        delete this.powerupPostHooks[key];
+      }
+    }
   }
 }
 

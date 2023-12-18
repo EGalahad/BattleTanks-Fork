@@ -1,6 +1,5 @@
 import * as THREE from "three";
 import { SceneObject } from "../api/SceneObject";
-import { gravity } from "../api/config";
 import { Wall } from "./wall";
 import { Tank } from "./tank";
 import { Ground } from "./ground";
@@ -33,7 +32,7 @@ class Bullet extends SceneObject {
 
       this.mesh.position.copy(pos);
       this.vel = vel;
-      this.accel = gravity;
+      this.accel = new THREE.Vector3(0, 0, -100);
 
       this.attack = attack
   }
