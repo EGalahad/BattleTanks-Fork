@@ -41,8 +41,8 @@ class Tank extends MovableObject {
 
   // other assets
   bullet_mesh: THREE.Group;
-  sound: THREE.Audio;
-  audio: any;
+  listener: THREE.AudioListener;
+  audio: AudioBuffer;
 
   originalColor: any;
 
@@ -56,7 +56,7 @@ class Tank extends MovableObject {
   powerupPostHooks: { [key: string]: (tank: Tank) => void } = {};
 
   constructor(name: string, tank_mesh: THREE.Group | null,
-    bullet_mesh: THREE.Group | null, sound: THREE.Audio | null, audio: any | null, config: Partial<Tank> = {}) {
+    bullet_mesh: THREE.Group | null, listener: THREE.AudioListener | null, audio: any | null, config: Partial<Tank> = {}) {
     super("tank", name);
     Object.assign(this, config);
 
@@ -77,11 +77,11 @@ class Tank extends MovableObject {
     }
 
     if (name == "player2") {
-      this.mesh.translateX(-40);
+      this.mesh.translateX(40);
     }
 
-    if (sound != null) {
-      this.sound = sound;
+    if (listener != null) {
+      this.listener = listener;
     }
     if (audio != null) {
       this.audio = audio;
@@ -147,11 +147,10 @@ class Tank extends MovableObject {
     if (keyboard[this.firingKey]) {
       const now = Date.now();
       if (!this.firingKeyPressed && now - this.lastFireTime > 100) {
-        console.log("creating bullet");
         const { pos, vel } = this._getBulletInitState();
         if (!this.bulletUpgraded) {
           const bullet = new Bullet("main", pos, vel, this.attack, this.bullet_mesh,
-            this.mesh.rotation, this.sound, this.audio);
+            this.mesh.rotation, this.listener, this.audio);
           bullets.push(bullet);
           scene.add(bullet);
         } else {
@@ -161,13 +160,13 @@ class Tank extends MovableObject {
           let vel3 = new THREE.Vector3(0.2, Math.cos(Math.PI / 6), Math.sin(Math.PI / 6)).
             applyEuler(this.mesh.rotation).multiplyScalar(this.bulletSpeed);
           const bullet1 = new Bullet("main", pos, vel, this.attack, this.bullet_mesh,
-            this.mesh.rotation, this.sound, this.audio);
+            this.mesh.rotation, this.listener, this.audio);
           const bullet2 = new Bullet("main", pos, vel2, this.attack, this.bullet_mesh,
             new THREE.Euler(this.mesh.rotation.x, this.mesh.rotation.y, this.mesh.rotation.z + Math.PI / 6),
-            this.sound, this.audio);
+            this.listener, this.audio);
           const bullet3 = new Bullet("main", pos, vel3, this.attack, this.bullet_mesh,
             new THREE.Euler(this.mesh.rotation.x, this.mesh.rotation.y, this.mesh.rotation.z - Math.PI / 6),
-            this.sound, this.audio);
+            this.listener, this.audio);
           bullets.push(bullet1, bullet2, bullet3);
           scene.add(bullet1);
           scene.add(bullet2);
