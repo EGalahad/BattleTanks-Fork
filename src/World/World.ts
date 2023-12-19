@@ -35,6 +35,7 @@ class World {
     loop: Loop;
 
     mesh: { [key: string]: THREE.Group } = {};
+    textures: { [key: string]: THREE.Texture } = {};
     audio: { [key: string]: AudioBuffer } = {};
     listener: THREE.AudioListener;
     bgAudio: THREE.Audio;
@@ -58,11 +59,11 @@ class World {
         this.instructions = document.getElementById("instructions") as HTMLElement;
 
         this.loadAssets();
-
         await new Promise(resolve => setTimeout(resolve, 1000));
+
         this.scene = new Scene();
 
-        this.ground = new Ground("main");
+        this.ground = new Ground("main", this.textures);
         this.scene.add(this.ground);
 
         this.hemiLight = new HemiSphereLight("main");
@@ -185,6 +186,26 @@ class World {
         });
         audioLoader.load('assets/audio/explosion.mp3', (buffer) => {
             this.audio["Explosion"] = buffer;
+        });
+
+        const textureLoader = new THREE.TextureLoader();
+        textureLoader.load('assets/grassy-meadow1-bl/grassy-meadow1_albedo.png', (texture) => {
+            this.textures["albedo"] = texture;
+        });
+        textureLoader.load('assets/grassy-meadow1-bl/grassy-meadow1_ao.png', (texture) => {
+            this.textures["ao"] = texture;
+        });
+        textureLoader.load('assets/grassy-meadow1-bl/grassy-meadow1_height.png', (texture) => {
+            this.textures["height"] = texture;
+        });
+        textureLoader.load('assets/grassy-meadow1-bl/grassy-meadow1_metallic.png', (texture) => {
+            this.textures["metallic"] = texture;
+        });
+        textureLoader.load('assets/grassy-meadow1-bl/grassy-meadow1_normal-ogl.png', (texture) => {
+            this.textures["normal"] = texture;
+        });
+        textureLoader.load('assets/grassy-meadow1-bl/grassy-meadow1_roughness.png', (texture) => {
+            this.textures["roughness"] = texture;
         });
 
     }
